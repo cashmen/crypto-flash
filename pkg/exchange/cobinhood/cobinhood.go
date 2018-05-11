@@ -1,4 +1,4 @@
-package main
+package cobinhood
 
 import (
 	"log"
@@ -10,7 +10,32 @@ import (
 	"time"
 )
 
+type WSClient struct {
+	isConnected	bool
+	terminal	bool
+	connection	websocket.Dialer
+}
+
+func (c *WSClient) subscribeBooks() {
+
+}
+
+func New() *WSClient {
+	c := &WSClient{
+		isConnected:	false,
+		terminal:		false,
+		connection:		websocket.Dialer{},
+	}
+	return c
+}
+
 func main() {
+
+	//
+	client := New()
+	client.subscribeBooks()
+	//
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
