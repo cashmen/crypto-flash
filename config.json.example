@@ -1,5 +1,7 @@
 {
     "key": "",
     "secret": "",
-    "subaccount": ""
+    "subaccount": "",
+    "channel_secret": "",
+    "channel_access_token": ""
 }

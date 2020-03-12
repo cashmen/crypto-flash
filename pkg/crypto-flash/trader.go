@@ -1,3 +1,14 @@
+/*
+// Trader have the following functions:
+// 1. receives trade signals
+// 2. decides the amount of order to make by wallet balance
+// 3. complete trades by exchange api and maintains order status
+// 4. calculate ROI
+// 5. send notifications such as ROI or order status
+// Input: signal provider
+// Output: exchange trade API or notifier
+// TODO: all
+*/
 package cryptoflash
 
 import "fmt"
