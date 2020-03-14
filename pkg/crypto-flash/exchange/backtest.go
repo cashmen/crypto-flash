@@ -5,4 +5,4 @@
 // Output: signal provider or indicator
 // TODO: all
 */
-package cryptoflash
+package exchange

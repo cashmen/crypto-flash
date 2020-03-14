@@ -10,7 +10,8 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"time"
+	exchange "github.com/CheshireCatNick/crypto-flash/pkg/crypto-flash/exchange"
+	util "github.com/CheshireCatNick/crypto-flash/pkg/crypto-flash/util"
 
 	//cryptoflash "github.com/CheshireCatNick/crypto-flash/pkg/crypto-flash"
 )
@@ -21,24 +22,6 @@ type config struct {
 	SubAccount string
 	Channel_Secret string
 	Channel_Access_Token string
-}
-
-type candle struct {
-	Close     float64
-	High      float64
-	Low       float64
-	Open      float64
-	StartTime string
-	Volume    float64
-}
-
-type duration struct {
-	year   int64
-	month  int64
-	day    int64
-	hour   int64
-	minute int64
-	second int64
 }
 
 const (
@@ -55,16 +38,16 @@ func loadConfig(fileName string) config {
 	return c
 }
 
-func calculateTrueRanges(candles []candle) []float64 {
+func calculateTrueRanges(candles []*util.Candle) []float64 {
 	var result []float64
 	for i := 0; i < len(candles); i++ {
 		if i == 0 {
-			result = append(result, candles[0].High-candles[0].Low)
+			result = append(result, candles[0].GetHigh()-candles[0].GetLow())
 			continue
 		}
-		a := candles[i].High - candles[i].Low
-		b := math.Abs(candles[i].High - candles[i-1].Close)
-		c := math.Abs(candles[i].Low - candles[i-1].Close)
+		a := candles[i].GetHigh() - candles[i].GetLow()
+		b := math.Abs(candles[i].GetHigh() - candles[i-1].GetClose())
+		c := math.Abs(candles[i].GetLow() - candles[i-1].GetClose())
 		result = append(result, math.Max(math.Max(a, b), c))
 	}
 	return result
@@ -99,10 +82,10 @@ func calculateRMA(period int, arr []float64) []float64 {
 	}
 	return result
 }
-func calculateATR(period int, candles []candle) []float64 {
+func calculateATR(period int, candles []*util.Candle) []float64 {
 	return calculateRMA(period, calculateTrueRanges(candles))
 }
-func calculateSuperTrends(multiplier float64, period int, candles []candle) []float64 {
+func calculateSuperTrends(multiplier float64, period int, candles []*util.Candle) []float64 {
 	atrs := calculateATR(period, candles)
 	var result []float64
 	var (
@@ -118,13 +101,13 @@ func calculateSuperTrends(multiplier float64, period int, candles []candle) []fl
 	prevTrend = "unknown"
 	for i := 0; i < len(candles); i++ {
 		basicUpperBand = 
-			(candles[i].High + candles[i].Low) / 2 + multiplier * atrs[i]
+			candles[i].GetAvg() + multiplier * atrs[i]
 		basicLowerBand = 
-			(candles[i].High + candles[i].Low) / 2 - multiplier * atrs[i]
+			candles[i].GetAvg() - multiplier * atrs[i]
 		if i == 0 {
 			finalUpperBand = basicUpperBand
 		} else if basicUpperBand < prevFinalUpperBand || 
-			candles[i - 1].Close > prevFinalUpperBand {
+			candles[i - 1].GetClose() > prevFinalUpperBand {
 			// price is falling or in up trend, adjust upperband
 			finalUpperBand = basicUpperBand
 		} else {
@@ -134,7 +117,7 @@ func calculateSuperTrends(multiplier float64, period int, candles []candle) []fl
 		if i == 0 {
 			finalLowerBand = basicLowerBand
 		} else if basicLowerBand > prevFinalLowerBand ||
-			candles[i - 1].Close < prevFinalLowerBand {
+			candles[i - 1].GetClose() < prevFinalLowerBand {
 			// price is rising or in down trend, adjust lowerband
 			finalLowerBand = basicLowerBand
 		} else {
@@ -147,11 +130,11 @@ func calculateSuperTrends(multiplier float64, period int, candles []candle) []fl
 		} else {
 			superTrend = finalLowerBand
 		}*/
-		if candles[i].Close >= finalUpperBand {
+		if candles[i].GetClose() >= finalUpperBand {
 			fmt.Printf("up %d\n", i)
 			superTrend = finalLowerBand
 			prevTrend = "up"
-		} else if candles[i].Close <= finalLowerBand {
+		} else if candles[i].GetClose() <= finalLowerBand {
 			fmt.Printf("down %d\n", i)
 			superTrend = finalUpperBand
 			prevTrend = "down"
@@ -173,10 +156,18 @@ func calculateSuperTrends(multiplier float64, period int, candles []candle) []fl
 	return result
 }
 func getHistoryCandles(market string, resolution int,
-	startTime int64, endTime int64) []candle {
+	startTime int64, endTime int64) []*util.Candle {
+	type candleResp struct {
+		Close     float64
+		High      float64
+		Low       float64
+		Open      float64
+		StartTime string
+		Volume    float64
+	}
 	type historyResp struct {
 		Success bool
-		Result  []candle
+		Result  []candleResp
 	}
 	req := fmt.Sprintf(
 		"%s/markets/%s/candles?resolution=%d&start_time=%d&end_time=%d&limit=5000",
@@ -193,19 +184,14 @@ func getHistoryCandles(market string, resolution int,
 		log.Fatal(err)
 	}
 	//fmt.Println(resObj)
-	return resObj.Result
+	var candles []*util.Candle
+	for _, c := range resObj.Result {
+		candles = append(candles, util.NewCandle(
+			c.Close, c.High, c.Low, c.Open, c.Volume, c.StartTime))
+	}
+	return candles
 }
-// convert my duration to time.Duration
-func getDuration(d duration) time.Duration {
-	sToNano := int64(1000000000)
-	mToNano := sToNano * 60
-	hToNano := mToNano * 60
-	dToNano := hToNano * 24
-	monthToNano := dToNano * 30
-	yToNano := monthToNano * 12
-	return time.Duration(-1 * (d.year*yToNano + d.month*monthToNano +
-		d.day*dToNano + d.hour*hToNano + d.minute*mToNano + d.second*sToNano))
-}
+
 func closePosition(side string, openPrice, closePrice float64) float64 {
 	ROI := (closePrice - openPrice) / openPrice
 	if side == "short" {
@@ -222,58 +208,58 @@ func backtest(market string, resolution int, startTime, endTime int64) {
 	currentUSD := initUSD
 	currentState := "no pos"
 	prevState := ""
-	takeProfit := 300.0
+	takeProfit := 500.0
 	stopLoss := 100.0
 	var currentPos float64 = -1
 	fmt.Println("start backtesting")
 	for i := 0; i < len(candles) - 1; i++ {
-		fmt.Printf("close %f, st: %f\n", candles[i].Close, superTrends[i])
+		fmt.Printf("close %f, st: %f\n", candles[i].GetClose(), superTrends[i])
 		// take profit or stop loss
 		if currentState == "long" {
-			if candles[i].High - currentPos >= takeProfit {
+			if candles[i].GetHigh() - currentPos >= takeProfit {
 				ROI := closePosition("long", currentPos, currentPos + takeProfit)
 				currentUSD *= (1 + ROI)
 				prevState = currentState
 				currentState = "no pos"
-			} else if (currentPos - candles[i].Low >= stopLoss) {
+			} else if (currentPos - candles[i].GetLow() >= stopLoss) {
 				ROI := closePosition("long", currentPos, currentPos - stopLoss)
 				currentUSD *= (1 + ROI)
 				prevState = currentState
 				currentState = "no pos"
 			}
 		} else if currentState == "short" {
-			if candles[i].High - currentPos >= stopLoss {
+			if candles[i].GetHigh() - currentPos >= stopLoss {
 				ROI := closePosition("short", currentPos, currentPos + stopLoss)
 				currentUSD *= (1 + ROI)
 				prevState = currentState
 				currentState = "no pos"
-			} else if (currentPos - candles[i].Low >= takeProfit) {
+			} else if (currentPos - candles[i].GetLow() >= takeProfit) {
 				ROI := closePosition("short", currentPos, currentPos - takeProfit)
 				currentUSD *= (1 + ROI)
 				prevState = currentState
 				currentState = "no pos"
 			}
 		}
-		if currentState != "short" && candles[i].Close < superTrends[i] &&
+		if currentState != "short" && candles[i].GetClose() < superTrends[i] &&
 			prevState != "short" {
 			if currentState == "long" {
 				// close long position
-				ROI := closePosition("long", currentPos, candles[i + 1].Open)
+				ROI := closePosition("long", currentPos, candles[i + 1].GetOpen())
 				currentUSD *= (1 + ROI)
 			}
 			fmt.Println("start short")
 			currentState = "short"
-			currentPos = candles[i + 1].Open
-		} else if currentState != "long" && candles[i].Close > superTrends[i] &&
+			currentPos = candles[i + 1].GetOpen()
+		} else if currentState != "long" && candles[i].GetClose() > superTrends[i] &&
 			prevState != "long" {
 			if currentState == "short" {
 				// close short position
-				ROI := closePosition("short", currentPos, candles[i + 1].Open)
+				ROI := closePosition("short", currentPos, candles[i + 1].GetOpen())
 				currentUSD *= (1 + ROI)
 			}
 			fmt.Println("start long")
 			currentState = "long"
-			currentPos = candles[i + 1].Open
+			currentPos = candles[i + 1].GetOpen()
 		}
 	}
 	ROI := (currentUSD - initUSD) / initUSD
@@ -281,12 +267,20 @@ func backtest(market string, resolution int, startTime, endTime int64) {
 }
 func main() {
 	//config := loadConfig("config.json")
+	/*
 	endTime := time.Now()
 	var d duration
-	d.day = 30
+	d.day = 100
 	duration := getDuration(d)
 	startTime := endTime.Add(duration)
-	backtest("BTC-PERP", 1 * 3600, startTime.Unix(), endTime.Unix())
+	backtest("BTC-PERP", 1 * 3600, startTime.Unix(), endTime.Unix())*/
+	ftx := exchange.NewFTX()
+	c := make(chan *util.Candle)
+	go ftx.SubCandle("BTC-PERP", 60, c);
+	for {
+		fmt.Println(<-c)
+	}
+
 	//fmt.Println(superTrends)
 	// test line bot function
 	//notifier := cryptoflash.NewNotifier(config.Channel_Secret, config.Channel_Access_Token)
