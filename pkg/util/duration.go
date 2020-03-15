@@ -11,7 +11,7 @@ type Duration struct {
 }
 
 // convert my duration to time.Duration
-func (d *Duration) GetDuration() time.Duration {
+func (d *Duration) GetTimeDuration() time.Duration {
 	sToNano := int64(1000000000)
 	mToNano := sToNano * 60
 	hToNano := mToNano * 60

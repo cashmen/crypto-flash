@@ -7,7 +7,7 @@
 // 1. finish send()
 // 2. support Telegram
 */
-package cryptoflash
+package character
 
 import (
 	"log"

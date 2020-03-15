@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"log"
 	"time"
-	util "github.com/CheshireCatNick/crypto-flash/pkg/crypto-flash/util"
+	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
 )
 
 const (
@@ -72,20 +72,20 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 func sleepToNextCandle(resolution int64) {
 	timeToNextCandle := resolution - time.Now().Unix() % resolution
 	sleepDuration := util.Duration{Second: timeToNextCandle}
-	time.Sleep(sleepDuration.GetDuration())
+	time.Sleep(sleepDuration.GetTimeDuration())
 }
 // resolution can be 15, 60, 300, 900, 3600, 14400, 86400
 func (ftx *FTX) SubCandle(
-		market string, resolution int, sub chan<- *util.Candle) {
+		market string, resolution int, c chan<- *util.Candle) {
 	dataID := fmt.Sprintf("%s-%d", market, resolution)
 	if _, exist := ftx.candleData[dataID]; exist {
 		// someone already sub this data
-		ftx.candleSubs[dataID] = append(ftx.candleSubs[dataID], sub)
+		ftx.candleSubs[dataID] = append(ftx.candleSubs[dataID], c)
 		return;
 	}
 	ftx.candleData[dataID] = []*util.Candle{}
 	ftx.candleSubs[dataID] = []chan<- *util.Candle{}
-	ftx.candleSubs[dataID] = append(ftx.candleSubs[dataID], sub)
+	ftx.candleSubs[dataID] = append(ftx.candleSubs[dataID], c)
 	resolution64 := int64(resolution)
 	// sleep to the next candle
 	sleepToNextCandle(resolution64)

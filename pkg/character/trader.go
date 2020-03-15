@@ -9,7 +9,7 @@
 // Output: exchange trade API or notifier
 // TODO: all
 */
-package cryptoflash
+package character
 
 import "fmt"
 
