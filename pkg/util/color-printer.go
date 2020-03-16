@@ -20,7 +20,7 @@ func PrintGreen(s string) {
 }
 // parse
 func PF64(n float64) string {
-	return fmt.Sprintf("%f", n)
+	return fmt.Sprintf("%.2f", n)
 }
 func PI(n int) string {
 	return fmt.Sprintf("%d", n)

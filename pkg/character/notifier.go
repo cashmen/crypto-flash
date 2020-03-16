@@ -33,8 +33,23 @@ func (n *Notifier)Broadcast(message string) {
 	var messages []linebot.SendingMessage
 	messages = append(messages, linebot.NewTextMessage(message))
 	_, err := n.lineClient.BroadcastMessage(messages...).Do()
+	// also send to rooms
 	if err != nil {
 		// Do something when some bad happened
 		log.Fatal(err)
+	}
+	// TODO: move this to DB
+	roomID := []string{
+		// rong
+		"R6b0164c3372347626ab56afae04b9a79",
+		// bulbul
+		"R129f4d8f3dd39d852d6604b7332c47fa",
+	}
+	for _, rID := range roomID {
+		_, err := n.lineClient.PushMessage(rID, messages...).Do()
+		if err != nil {
+			// Do something when some bad happened
+			log.Fatal(err)
+		}
 	}
 }

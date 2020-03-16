@@ -25,13 +25,13 @@ func NewCandle(o, l, h, c, v float64, st string) *Candle {
 func (candle *Candle) GetAvg() float64 {
 	return (candle.High + candle.Low) / 2
 }
-func (candle *Candle) ToString() string {
+func (candle *Candle) String() string {
 	var color func(string, ...interface{}) string
 	if candle.Close > candle.Open {
 		color = Green
 	} else {
 		color = Red
 	}
-	return color(fmt.Sprintf("o: %f, l: %f, h: %f, c: %f, time: %s", 
+	return color(fmt.Sprintf("o: %.2f, l: %.2f, h: %.2f, c: %.2f, time: %s", 
 		candle.Open, candle.Low, candle.High, candle.Close, candle.StartTime))
 }

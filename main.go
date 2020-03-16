@@ -4,19 +4,15 @@
 package main
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	//"fmt"
-	//"io/ioutil"
-	//"log"
-	//"math"
-	//"net/http"
-	//exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
-	//util "github.com/CheshireCatNick/crypto-flash/pkg/util"
+	"io/ioutil"
+	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
 	//"time"
 	character "github.com/CheshireCatNick/crypto-flash/pkg/character"
-	//cryptoflash "github.com/CheshireCatNick/crypto-flash/pkg/crypto-flash"
 )
-/*
+
+const tag = "Main"
 type config struct {
 	Key        string
 	Secret     string
@@ -29,26 +25,27 @@ func loadConfig(fileName string) config {
 	var c config
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		log.Fatal(err)
+		util.Error(tag, err.Error())
 	}
 	json.Unmarshal(bytes, &c)
 	return c
 }
-*/
+
 func main() {
-	//config := loadConfig("config.json")
-	sp := character.NewSignalProvider("BTC-PERP", 15)
+	
+	config := loadConfig("config.json")
+	nf := character.NewNotifier(config.Channel_Secret, 
+		config.Channel_Access_Token)
+	nf.Broadcast("Crypto Flash initialized.")
+	sp := character.NewSignalProvider("BTC-PERP", 300, nf)
+	sp.Start()
+	
 	/*
+	sp := character.NewSignalProvider("BTC-PERP", 300, nil)
 	endTime := time.Now()
 	var d util.Duration
-	d.Day = -1
+	d.Day = -3
 	startTime := endTime.Add(d.GetTimeDuration())
 	sp.Backtest(startTime.Unix(), endTime.Unix())
 	*/
-	
-	sp.Start()
-
-	// test line bot function
-	//notifier := cryptoflash.NewNotifier(config.Channel_Secret, config.Channel_Access_Token)
-	//notifier.Broadcast("test")
 }

@@ -32,7 +32,7 @@ func NewFTX() *FTX {
 	ftx.candleSubs = make(map[string][]chan<- *util.Candle)
 	return &ftx
 }
-
+// TODO: if candles >= 5000, request many times and concat
 func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 	startTime int64, endTime int64) []*util.Candle {
 	type candleResp struct {
@@ -92,7 +92,6 @@ func (ftx *FTX) SubCandle(
 	sleepToNextCandle(resolution64)
 	for {
 		now := time.Now().Unix()
-		util.Info(tag, "get candles")
 		startTime := now - resolution64 * 2 + 1
 		endTime := now - resolution64
 		candles := ftx.GetHistoryCandles(
