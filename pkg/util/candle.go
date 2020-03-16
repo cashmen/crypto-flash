@@ -1,5 +1,7 @@
 package util
 
+import "fmt"
+
 type Candle struct {
 	Close     float64
 	High      float64
@@ -9,7 +11,7 @@ type Candle struct {
 	Volume    float64
 }
 
-func NewCandle(c, h, l, o, v float64, st string) *Candle {
+func NewCandle(o, l, h, c, v float64, st string) *Candle {
 	return &Candle{ 
 		Close: c, 
 		High: h,
@@ -22,4 +24,14 @@ func NewCandle(c, h, l, o, v float64, st string) *Candle {
 
 func (candle *Candle) GetAvg() float64 {
 	return (candle.High + candle.Low) / 2
+}
+func (candle *Candle) ToString() string {
+	var color func(string, ...interface{}) string
+	if candle.Close > candle.Open {
+		color = Green
+	} else {
+		color = Red
+	}
+	return color(fmt.Sprintf("o: %f, l: %f, h: %f, c: %f, time: %s", 
+		candle.Open, candle.Low, candle.High, candle.Close, candle.StartTime))
 }

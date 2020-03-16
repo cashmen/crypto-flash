@@ -1,7 +1,6 @@
 package indicator
 
 import util "github.com/CheshireCatNick/crypto-flash/pkg/util"
-import "fmt"
 
 type SuperTrend struct {
 	period int
@@ -13,6 +12,7 @@ type SuperTrend struct {
 	prevCandle *util.Candle
 }
 
+const tag = "SuperTrend"
 func NewSuperTrend(multiplier float64, period int) *SuperTrend {
 	return &SuperTrend{
 		period: period,
@@ -54,18 +54,18 @@ func (st *SuperTrend) Update(candle *util.Candle) float64 {
 		// price is falling, maintain lowerband
 		finalLowerBand = st.prevFinalLowerBand
 	}
-	/*
+	/* another version
 	if candles[i].Close <= finalUpperBand {
 		superTrend = finalUpperBand
 	} else {
 		superTrend = finalLowerBand
 	}*/
 	if candle.Close >= finalUpperBand {
-		fmt.Println("up")
+		util.Info(tag, util.Green("trend up"))
 		superTrend = finalLowerBand
 		st.prevTrend = "up"
 	} else if candle.Close <= finalLowerBand {
-		fmt.Println("down")
+		util.Info(tag, util.Red("trend down"))
 		superTrend = finalUpperBand
 		st.prevTrend = "down"
 	} else {
@@ -73,8 +73,10 @@ func (st *SuperTrend) Update(candle *util.Candle) float64 {
 		// keep previous trend
 		if (st.prevTrend == "up") {
 			superTrend = finalLowerBand
-		} else {
+		} else if (st.prevTrend == "down") {
 			superTrend = finalUpperBand
+		} else {
+			superTrend = -1
 		}
 	}
 	st.prevFinalUpperBand = finalUpperBand

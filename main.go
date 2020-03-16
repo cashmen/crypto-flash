@@ -37,7 +37,7 @@ func loadConfig(fileName string) config {
 */
 func main() {
 	//config := loadConfig("config.json")
-	sp := character.NewSignalProvider("BTC-PERP", 300)
+	sp := character.NewSignalProvider("BTC-PERP", 15)
 	/*
 	endTime := time.Now()
 	var d util.Duration

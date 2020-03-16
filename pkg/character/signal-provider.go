@@ -26,7 +26,8 @@ type SignalProvider struct {
 }
 // strategy configuration
 const (
-	warmUpCandleNum = 14
+	tag = "SignalProvider"
+	warmUpCandleNum = 40
 	takeProfit = 300
 	stopLoss = 100
 	initBalance = 1000000
@@ -42,7 +43,6 @@ func NewSignalProvider(market string, resolution int) *SignalProvider {
 		balance: initBalance,
 	}
 }
-
 func (sp *SignalProvider) Backtest(startTime, endTime int64) {
 	st := indicator.NewSuperTrend(3, 10)
 	ftx := exchange.NewFTX()
@@ -55,15 +55,18 @@ func (sp *SignalProvider) Backtest(startTime, endTime int64) {
 	for i := warmUpCandleNum; i < len(candles); i++ {
 		candle := candles[i]
 		superTrend := st.Update(candle)
-		fmt.Println("candle:", candle.High, candle.Low, candle.Close, candle.StartTime)
-		fmt.Println("supertrend:", st.Update(candle))
+		util.Info(tag, util.PF64(candle.High), util.PF64(candle.Low), 
+			util.PF64(candle.Close), candle.StartTime)
+		util.Info(tag, util.PF64(superTrend))
 		sp.genSignal(candle, superTrend)
 	}
 	ROI := (sp.balance - sp.initBalance) / sp.initBalance
 	fmt.Printf("balance: %f, total ROI: %f\n", sp.balance, ROI)
 }
 func (sp *SignalProvider) genSignal(candle *util.Candle, superTrend float64) {
-	fmt.Printf("close %f, st: %f\n", candle.Close, superTrend)
+	if (superTrend == -1) {
+		return
+	}
 	// take profit or stop loss
 	if sp.position != nil && sp.position.Side == "long" {
 		if candle.High - sp.position.OpenPrice >= takeProfit {
@@ -100,7 +103,8 @@ func (sp *SignalProvider) genSignal(candle *util.Candle, superTrend float64) {
 			sp.balance *= 1 + ROI
 		}
 		sp.position = util.NewPosition("short", sp.balance, candle.Close)
-		fmt.Printf("start short @ %f\n", sp.position.OpenPrice)
+		util.Info(tag, 
+			util.Red(fmt.Sprintf("start short @ %f", sp.position.OpenPrice)))
 	} else if (sp.position == nil || sp.position.Side == "short") && 
 			candle.Close > superTrend &&
 			sp.prevSide != "long" {
@@ -111,10 +115,11 @@ func (sp *SignalProvider) genSignal(candle *util.Candle, superTrend float64) {
 			sp.balance *= 1 + ROI
 		}
 		sp.position = util.NewPosition("long", sp.balance, candle.Close)
-		fmt.Printf("start long @ %f\n", sp.position.OpenPrice)
+		util.Info(tag, 
+			util.Green(fmt.Sprintf("start long @ %f", sp.position.OpenPrice)))
 	}
 	ROI := (sp.balance - sp.initBalance) / sp.initBalance
-	fmt.Printf("balance: %f, total ROI: %f\n", sp.balance, ROI)
+	util.Info(tag, fmt.Sprintf("balance: %f, total ROI: %f", sp.balance, ROI))
 }
 func (sp *SignalProvider) Start() {
 	st := indicator.NewSuperTrend(3, 10)
@@ -136,8 +141,8 @@ func (sp *SignalProvider) Start() {
 	for {
 		candle := <-c
 		superTrend := st.Update(candle)
-		fmt.Println("candle:", candle.High, candle.Low, candle.Close, candle.StartTime)
-		fmt.Println("supertrend:", st.Update(candle))
+		util.Info(tag, "received candle", candle.ToString())
+		util.Info(tag, "super trend", util.PF64(superTrend))
 		sp.genSignal(candle, superTrend)
 	}
 }

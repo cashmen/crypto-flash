@@ -17,6 +17,7 @@ import (
 
 const (
 	apiEndPoint string = "https://ftx.com/api"
+	tag = "FTX"
 )
 
 type FTX struct {
@@ -65,7 +66,7 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 	var candles []*util.Candle
 	for _, c := range resObj.Result {
 		candles = append(candles, util.NewCandle(
-			c.Close, c.High, c.Low, c.Open, c.Volume, c.StartTime))
+			c.Open, c.Low, c.High, c.Close, c.Volume, c.StartTime))
 	}
 	return candles
 }
@@ -91,7 +92,7 @@ func (ftx *FTX) SubCandle(
 	sleepToNextCandle(resolution64)
 	for {
 		now := time.Now().Unix()
-		fmt.Println("Get candles", time.Now())
+		util.Info(tag, "get candles")
 		startTime := now - resolution64 * 2 + 1
 		endTime := now - resolution64
 		candles := ftx.GetHistoryCandles(
