@@ -40,8 +40,6 @@ func (n *Notifier)Broadcast(message string) {
 	}
 	// TODO: move this to DB
 	roomID := []string{
-		// rong
-		"R6b0164c3372347626ab56afae04b9a79",
 		// bulbul
 		"R129f4d8f3dd39d852d6604b7332c47fa",
 		// jiajie
