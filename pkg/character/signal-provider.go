@@ -4,7 +4,7 @@
 // Signal provider is an implementation of a strategy.
 // Input: market data from exchanges or indicators
 // Output: trader or notifier
-// TODO: all
+// TODO: static and dynamic stop loss and take profit
 */
 package character
 

@@ -11,7 +11,7 @@ type Candle struct {
 	Volume    float64
 }
 
-func NewCandle(o, l, h, c, v float64, st string) *Candle {
+func NewCandle(o, h, l, c, v float64, st string) *Candle {
 	return &Candle{ 
 		Close: c, 
 		High: h,
@@ -32,6 +32,6 @@ func (candle *Candle) String() string {
 	} else {
 		color = Red
 	}
-	return color(fmt.Sprintf("o: %.2f, l: %.2f, h: %.2f, c: %.2f, time: %s", 
-		candle.Open, candle.Low, candle.High, candle.Close, candle.StartTime))
+	return color(fmt.Sprintf("o: %.2f, h: %.2f, l: %.2f, c: %.2f, time: %s", 
+		candle.Open, candle.High, candle.Low, candle.Close, candle.StartTime))
 }

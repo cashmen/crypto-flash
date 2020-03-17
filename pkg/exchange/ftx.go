@@ -2,7 +2,8 @@
 // Ftx implements exchange API for FTX exchange.
 // Input: real exchange, trader
 // Output: real exchange, signal provider or indicator
-// TODO: all
+// TODO: 
+// 1. getHistoryCandles: if candles >= 5000, request many times and concat result
 */
 package exchange
 
@@ -32,7 +33,6 @@ func NewFTX() *FTX {
 	ftx.candleSubs = make(map[string][]chan<- *util.Candle)
 	return &ftx
 }
-// TODO: if candles >= 5000, request many times and concat
 func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 	startTime int64, endTime int64) []*util.Candle {
 	type candleResp struct {
@@ -66,13 +66,13 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 	var candles []*util.Candle
 	for _, c := range resObj.Result {
 		candles = append(candles, util.NewCandle(
-			c.Open, c.Low, c.High, c.Close, c.Volume, c.StartTime))
+			c.Open, c.High, c.Low, c.Close, c.Volume, c.StartTime))
 	}
 	return candles
 }
 func sleepToNextCandle(resolution int64) {
 	timeToNextCandle := resolution - time.Now().Unix() % resolution
-	sleepDuration := util.Duration{Second: timeToNextCandle}
+	sleepDuration := util.Duration{Second: timeToNextCandle + 1}
 	time.Sleep(sleepDuration.GetTimeDuration())
 }
 // resolution can be 15, 60, 300, 900, 3600, 14400, 86400

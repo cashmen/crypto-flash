@@ -4,7 +4,7 @@
 // Input: signal provider or trader
 // Output: 
 // TODO: 
-// 1. finish send()
+// 1. save room ID to DB
 // 2. support Telegram
 */
 package character
