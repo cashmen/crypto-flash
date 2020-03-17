@@ -37,7 +37,7 @@ func main() {
 	nf := character.NewNotifier(config.Channel_Secret, 
 		config.Channel_Access_Token)
 	nf.Broadcast("Crypto Flash initialized.")
-	sp := character.NewSignalProvider("BTC-PERP", 300, nil)
+	sp := character.NewSignalProvider("BTC-PERP", 300, nf)
 	sp.Start()
 	
 	/*
