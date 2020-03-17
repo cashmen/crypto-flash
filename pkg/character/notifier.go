@@ -44,6 +44,8 @@ func (n *Notifier)Broadcast(message string) {
 		"R6b0164c3372347626ab56afae04b9a79",
 		// bulbul
 		"R129f4d8f3dd39d852d6604b7332c47fa",
+		// jiajie
+		"Ra97cc1fcb9be3bc73bf90a82a89ebf63",
 	}
 	for _, rID := range roomID {
 		_, err := n.lineClient.PushMessage(rID, messages...).Do()
