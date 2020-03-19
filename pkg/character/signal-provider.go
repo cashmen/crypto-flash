@@ -18,8 +18,6 @@ import (
 
 type SignalProvider struct {
 	startTime time.Time
-	resolution int
-	market string
 	position *util.Position
 	prevSide string
 	initBalance float64
@@ -33,13 +31,12 @@ const (
 	takeProfit = 350
 	stopLoss = 100
 	initBalance = 1000000
+	market = "BTC-PERP"
+	resolution = 300
 )
 
-func NewSignalProvider(market string, resolution int, 
-		notifier *Notifier) *SignalProvider {
+func NewSignalProvider(notifier *Notifier) *SignalProvider {
 	return &SignalProvider{
-		resolution: resolution,
-		market: market,
 		position: nil,
 		prevSide: "unknown",
 		initBalance: initBalance,
@@ -52,7 +49,7 @@ func (sp *SignalProvider) Backtest(startTime, endTime int64) {
 	stopST := indicator.NewSuperTrend(3, 10)
 	ftx := exchange.NewFTX()
 	candles := 
-		ftx.GetHistoryCandles(sp.market, sp.resolution, startTime, endTime)
+		ftx.GetHistoryCandles(market, resolution, startTime, endTime)
 	if len(candles) <= warmUpCandleNum {
 		util.Error(tag, "Not enough candles for backtesting!")
 	}
@@ -207,19 +204,19 @@ func (sp *SignalProvider) Start() {
 	ftx := exchange.NewFTX()
 	// warm up for moving average
 	now := time.Now().Unix()
-	resolution64 := int64(sp.resolution)
+	resolution64 := int64(resolution)
 	last := now - now % resolution64
 	startTime := last - resolution64 * (warmUpCandleNum + 1) + 1
 	endTime := last - resolution64
 	candles := 
-		ftx.GetHistoryCandles(sp.market, sp.resolution, startTime, endTime)
+		ftx.GetHistoryCandles(market, resolution, startTime, endTime)
 	for _, candle := range candles {
 		st.Update(candle)
 		stopST.Update(candle)
 	}
 	// start real time
 	c := make(chan *util.Candle)
-	go ftx.SubCandle(sp.market, sp.resolution, c);
+	go ftx.SubCandle(market, resolution, c);
 	for {
 		candle := <-c
 		superTrend := st.Update(candle)
