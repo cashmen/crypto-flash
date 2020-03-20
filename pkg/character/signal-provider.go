@@ -17,6 +17,8 @@ import (
 )
 
 type SignalProvider struct {
+	tag string
+	ftx *exchange.FTX
 	startTime time.Time
 	position *util.Position
 	prevSide string
@@ -26,7 +28,6 @@ type SignalProvider struct {
 }
 // strategy configuration
 const (
-	tag = "SignalProvider"
 	warmUpCandleNum = 40
 	takeProfit = 350
 	stopLoss = 100
@@ -35,8 +36,10 @@ const (
 	resolution = 300
 )
 
-func NewSignalProvider(notifier *Notifier) *SignalProvider {
+func NewSignalProvider(ftx *exchange.FTX, notifier *Notifier) *SignalProvider {
 	return &SignalProvider{
+		tag: "SignalProvider",
+		ftx: ftx,
 		position: nil,
 		prevSide: "unknown",
 		initBalance: initBalance,
@@ -47,27 +50,26 @@ func NewSignalProvider(notifier *Notifier) *SignalProvider {
 func (sp *SignalProvider) Backtest(startTime, endTime int64) {
 	st := indicator.NewSuperTrend(3, 10)
 	stopST := indicator.NewSuperTrend(3, 10)
-	ftx := exchange.NewFTX()
 	candles := 
-		ftx.GetHistoryCandles(market, resolution, startTime, endTime)
+		sp.ftx.GetHistoryCandles(market, resolution, startTime, endTime)
 	if len(candles) <= warmUpCandleNum {
-		util.Error(tag, "Not enough candles for backtesting!")
+		util.Error(sp.tag, "Not enough candles for backtesting!")
 	}
 	for i := 0; i < warmUpCandleNum; i++ {
 		st.Update(candles[i])
 		stopST.Update(candles[i])
 	}
-	util.Info(tag, "start backtesting")
+	util.Info(sp.tag, "start backtesting")
 	for i := warmUpCandleNum; i < len(candles); i++ {
 		candle := candles[i]
 		superTrend := st.Update(candle)
 		stop := stopST.Update(candle)
-		util.Info(tag, candle.String())
-		util.Info(tag, util.PF64(superTrend))
+		util.Info(sp.tag, candle.String())
+		util.Info(sp.tag, util.PF64(superTrend))
 		sp.genSignal(candle, superTrend, stop)
 	}
 	roi := (sp.balance - sp.initBalance) / sp.initBalance
-	util.Info(tag, 
+	util.Info(sp.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", sp.balance, roi * 100))
 }
 func (sp *SignalProvider) notifyROI() {
@@ -92,7 +94,7 @@ func (sp *SignalProvider) notifyClosePosition(price, roi float64, reason string)
 	}
 	msg := fmt.Sprintf("close %s @ %.2f due to %s\n", 
 		sp.position.Side, price, reason)
-	msg += fmt.Sprintf("roi: %.2f%%", roi * 100)
+	msg += fmt.Sprintf("ROI: %.2f%%", roi * 100)
 	sp.notifier.Broadcast(msg)
 	sp.notifyROI()
 }
@@ -175,7 +177,7 @@ func (sp *SignalProvider) genSignal(
 			sp.notifyClosePosition(candle.Close, roi, "SuperTrend")
 		}
 		sp.position = util.NewPosition("short", sp.balance, candle.Close)
-		util.Info(tag, 
+		util.Info(sp.tag, 
 			util.Red(fmt.Sprintf("start short @ %.2f", sp.position.OpenPrice)))
 		sp.notifyOpenPosition("SuperTrend")
 	} else if (sp.position == nil || sp.position.Side == "short") && 
@@ -189,19 +191,18 @@ func (sp *SignalProvider) genSignal(
 			sp.notifyClosePosition(candle.Close, roi, "SuperTrend")
 		}
 		sp.position = util.NewPosition("long", sp.balance, candle.Close)
-		util.Info(tag, 
+		util.Info(sp.tag, 
 			util.Green(fmt.Sprintf("start long @ %.2f", sp.position.OpenPrice)))
 		sp.notifyOpenPosition("SuperTrend")
 	}
 	roi := (sp.balance - sp.initBalance) / sp.initBalance
-	util.Info(tag, 
+	util.Info(sp.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", sp.balance, roi * 100))
 }
 func (sp *SignalProvider) Start() {
 	sp.startTime = time.Now()
 	st := indicator.NewSuperTrend(3, 10)
 	stopST := indicator.NewSuperTrend(3, 10)
-	ftx := exchange.NewFTX()
 	// warm up for moving average
 	now := time.Now().Unix()
 	resolution64 := int64(resolution)
@@ -209,20 +210,20 @@ func (sp *SignalProvider) Start() {
 	startTime := last - resolution64 * (warmUpCandleNum + 1) + 1
 	endTime := last - resolution64
 	candles := 
-		ftx.GetHistoryCandles(market, resolution, startTime, endTime)
+		sp.ftx.GetHistoryCandles(market, resolution, startTime, endTime)
 	for _, candle := range candles {
 		st.Update(candle)
 		stopST.Update(candle)
 	}
 	// start real time
 	c := make(chan *util.Candle)
-	go ftx.SubCandle(market, resolution, c);
+	go sp.ftx.SubCandle(market, resolution, c);
 	for {
 		candle := <-c
 		superTrend := st.Update(candle)
 		stop := stopST.Update(candle)
-		util.Info(tag, "received candle", candle.String())
-		util.Info(tag, "super trend", util.PF64(superTrend))
+		util.Info(sp.tag, "received candle", candle.String())
+		util.Info(sp.tag, "super trend", util.PF64(superTrend))
 		sp.genSignal(candle, superTrend, stop)
 	}
 }

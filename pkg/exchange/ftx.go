@@ -4,34 +4,48 @@
 // Output: real exchange, signal provider or indicator
 // TODO: 
 // 1. getHistoryCandles: if candles >= 5000, request many times and concat result
+// 3. getPosition
+// 4. makeOrder
+// 5. exchange interface
 */
 package exchange
 
 import (
-	"encoding/json"
-	"net/http"
 	"fmt"
-	"log"
 	"time"
+	"net/http"
 	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
 )
 
 const (
-	apiEndPoint string = "https://ftx.com/api"
-	tag = "FTX"
+	host string = "https://ftx.com"
+	marketAPI string = "/api/markets"
+	walletAPI string = "/api/wallet/balances"
+	orderAPI string = "/api/orders"
+	triggerOrderAPI string = "/api/conditional_orders"
 )
 
 type FTX struct {
+	tag string
+	key string
+	subAccount string
+	secret string
 	// save all candles data from different resolutions and markets
 	candleData map[string][]*util.Candle
 	candleSubs map[string][]chan<- *util.Candle
+	restClient *util.RestClient
 }
 
-func NewFTX() *FTX {
-	var ftx FTX
-	ftx.candleData = make(map[string][]*util.Candle)
-	ftx.candleSubs = make(map[string][]chan<- *util.Candle)
-	return &ftx
+func NewFTX(key, secret, subAccount string) *FTX {
+	return &FTX{
+		key: key,
+		secret: secret,
+		subAccount: subAccount,
+		tag: "FTX",
+		candleData: make(map[string][]*util.Candle),
+		candleSubs: make(map[string][]chan<- *util.Candle),
+		restClient: util.NewRestClient(),
+	}
 }
 func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 	startTime int64, endTime int64) []*util.Candle {
@@ -47,22 +61,11 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 		Success bool
 		Result  []candleResp
 	}
-	req := fmt.Sprintf(
-		"%s/markets/%s/candles?" + 
-		"resolution=%d&start_time=%d&end_time=%d&limit=5000",
-		apiEndPoint, market, resolution, startTime, endTime)
-	//fmt.Println(req)
-	res, err := http.Get(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-	decoder := json.NewDecoder(res.Body)
+	url := host + marketAPI + fmt.Sprintf(
+		"/%s/candles?resolution=%d&start_time=%d&end_time=%d&limit=5000",
+		market, resolution, startTime, endTime)
 	var resObj historyResp
-	if decoder.Decode(&resObj) != nil {
-		log.Fatal(err)
-	}
-	//fmt.Println(resObj)
+	ftx.restClient.Get(url, nil, &resObj)
 	var candles []*util.Candle
 	for _, c := range resObj.Result {
 		candles = append(candles, util.NewCandle(
@@ -102,4 +105,69 @@ func (ftx *FTX) SubCandle(
 		ftx.candleData[dataID] = append(ftx.candleData[dataID], candles...)
 		sleepToNextCandle(resolution64)
 	}
+}
+func (ftx *FTX) genAuthHeader(method, path, body string) *http.Header {
+	header := http.Header(make(map[string][]string))
+	header.Add("FTX-KEY", ftx.key)
+	ts := fmt.Sprintf("%d", time.Now().UnixNano() / 1000000)
+	header.Add("FTX-TS", ts)
+	payload := ts + method + path + body
+	fmt.Println(payload)
+	signature := util.HMac(payload, ftx.secret)
+	fmt.Println(signature)
+	header.Add("FTX-SIGN", signature)
+	header.Add("FTX-SUBACCOUNT", ftx.subAccount)
+	return &header
+}
+func (ftx *FTX) GetWallet() *util.Wallet {
+	type coin struct {
+		Coin string
+		Free float64
+		Total float64
+	}
+	type resp struct {
+		Success bool
+		Result []coin
+	}
+	url := host + walletAPI
+	header := ftx.genAuthHeader("GET", walletAPI, "")
+	var resObj resp
+	ftx.restClient.Get(url, header, &resObj)
+	wallet := util.NewWallet()
+	for _, coin := range resObj.Result {
+		wallet.Increase(coin.Coin, coin.Free)
+	}
+	return wallet
+}
+func (ftx *FTX) MakeOrder(order *util.Order) int64 {
+	type result struct {
+		CreatedAt string
+		FilledSize float64
+		Future string
+		Id int64
+		Market string
+		Price float64
+		RemainSize float64
+		Side string
+		Size float64
+		Status string
+		Type string
+		ReduceOnly bool
+		Ioc bool
+		PostOnly bool
+		ClientId string
+	}
+	type res struct {
+		Success bool
+		Result result
+	}
+	url := host + orderAPI
+	orderStr := order.GetJSONString()
+	header := ftx.genAuthHeader("POST", orderAPI, orderStr)
+	var resObj res
+	ftx.restClient.Post(url, header, order.GetBuffer(), &resObj)
+	if !resObj.Success {
+		util.Error(ftx.tag, "Make Order Error")
+	}
+	return resObj.Result.Id
 }

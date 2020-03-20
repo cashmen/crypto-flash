@@ -11,20 +11,22 @@
 */
 package character
 
-import "fmt"
+import (
+	"fmt"
+	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
+)
 
 // Trader represent a trader in crypto flash
 type Trader struct {
-	id string
+	
 }
 
 // NewTrader creates a trader instance
-func NewTrader() *Trader {
-
-	return &Trader{id: "1234"}
+func NewTrader(ftx *exchange.FTX, notifier *Notifier) *Trader {
+	return &Trader{}
 }
 
 // Run starts a trader
-func (t *Trader) Run() {
+func (t *Trader) Start() {
 	fmt.Println("start trading")
 }
