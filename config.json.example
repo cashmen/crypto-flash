@@ -1,8 +1,13 @@
 {
-    "notify": "",
-    "key": "",
-    "secret": "",
-    "subaccount": "",
-    "channel_secret": "",
-    "channel_access_token": ""
+    "ftx": {
+        "key": "",
+        "secret": "",
+        "subAccount": ""
+    },
+    "notify": true,
+    "line": {
+        "channel_secret": "",
+        "channel_access_token": ""
+    },
+    "telegram": ""
 }

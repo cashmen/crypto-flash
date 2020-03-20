@@ -3,7 +3,6 @@ package util
 import "encoding/json"
 import "net/http"
 import "io"
-import "fmt"
 
 type RestClient struct {
 	tag string
@@ -32,10 +31,9 @@ func (rc *RestClient) Get(url string, header *http.Header, v interface{}) {
 	if err != nil {
 		Error(rc.tag, err.Error())
 	}
-	req.Header = *header
-	fmt.Println(req.Header)
-	fmt.Println(req.Body)
-
+	if header != nil {
+		req.Header = *header
+	}
 	rc.do(req, v)
 }
 func (rc *RestClient) Post(url string, header *http.Header, body io.Reader, 
@@ -44,11 +42,10 @@ func (rc *RestClient) Post(url string, header *http.Header, body io.Reader,
 	if err != nil {
 		Error(rc.tag, err.Error())
 	}
-	req.Header = *header
+	if header != nil {
+		req.Header = *header
+	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
-	fmt.Println(req.Header)
-	fmt.Println(req.Body)
-
 	rc.do(req, v)
 }
