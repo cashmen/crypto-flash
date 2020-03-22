@@ -6,7 +6,7 @@ import "bytes"
 type Order struct {
 	Market string `json:"market"`
 	Side string `json:"side"`
-	Price float64 `json:"price"`
+	Price *float64 `json:"price"`
 	Type string `json:"type"`
 	Size float64 `json:"size"`
 	ReduceOnly bool `json:"reduceOnly"`

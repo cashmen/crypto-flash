@@ -47,9 +47,32 @@ func NewFTX(key, secret, subAccount string) *FTX {
 		restClient: util.NewRestClient(),
 	}
 }
+// depth 20 ~ 100
+func (ftx *FTX) GetOrderbook(market string, depth int) *util.Orderbook {
+	type orderbookRes struct {
+		Asks [][2]float64
+		Bids [][2]float64
+	}
+	type res struct {
+		Success bool
+		Result orderbookRes
+	}
+	url := host + marketAPI + 
+		fmt.Sprintf("/%s/orderbook?depth=%d", market, depth)
+	var resObj res
+	ftx.restClient.Get(url, nil, &resObj)
+	orderbook := &util.Orderbook{}
+	for _, row := range resObj.Result.Asks {
+		orderbook.Add("ask", row[0], row[1])
+	}
+	for _, row := range resObj.Result.Bids {
+		orderbook.Add("bid", row[0], row[1])
+	}
+	return orderbook
+}
 func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 	startTime int64, endTime int64) []*util.Candle {
-	type candleResp struct {
+	type candleRes struct {
 		Close     float64
 		High      float64
 		Low       float64
@@ -57,14 +80,14 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 		StartTime string
 		Volume    float64
 	}
-	type historyResp struct {
+	type historyRes struct {
 		Success bool
-		Result  []candleResp
+		Result  []candleRes
 	}
 	url := host + marketAPI + fmt.Sprintf(
 		"/%s/candles?resolution=%d&start_time=%d&end_time=%d&limit=5000",
 		market, resolution, startTime, endTime)
-	var resObj historyResp
+	var resObj historyRes
 	ftx.restClient.Get(url, nil, &resObj)
 	var candles []*util.Candle
 	for _, c := range resObj.Result {
@@ -112,9 +135,7 @@ func (ftx *FTX) genAuthHeader(method, path, body string) *http.Header {
 	ts := fmt.Sprintf("%d", time.Now().UnixNano() / 1000000)
 	header.Add("FTX-TS", ts)
 	payload := ts + method + path + body
-	fmt.Println(payload)
 	signature := util.HMac(payload, ftx.secret)
-	fmt.Println(signature)
 	header.Add("FTX-SIGN", signature)
 	header.Add("FTX-SUBACCOUNT", ftx.subAccount)
 	return &header
@@ -125,13 +146,13 @@ func (ftx *FTX) GetWallet() *util.Wallet {
 		Free float64
 		Total float64
 	}
-	type resp struct {
+	type res struct {
 		Success bool
 		Result []coin
 	}
 	url := host + walletAPI
 	header := ftx.genAuthHeader("GET", walletAPI, "")
-	var resObj resp
+	var resObj res
 	ftx.restClient.Get(url, header, &resObj)
 	wallet := util.NewWallet()
 	for _, coin := range resObj.Result {

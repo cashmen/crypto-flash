@@ -26,3 +26,9 @@ func (w *Wallet) Decrease(coin string, amount float64) {
 	}
 	w.balances[coin] -= amount
 }
+func (w *Wallet) GetBalance(coin string) float64 {
+	if _, exist := w.balances[coin]; !exist {
+		return -1
+	}
+	return w.balances[coin]
+}

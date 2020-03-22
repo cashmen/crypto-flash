@@ -9,7 +9,7 @@
 package character
 
 import (
-	"log"
+	"fmt"
 	"github.com/line/line-bot-sdk-go/linebot"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api"
 	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
@@ -25,7 +25,7 @@ type Notifier struct {
 func NewNotifier(secret, accessToken, tgToken string) *Notifier {
 	lc, err := linebot.New(secret, accessToken)
 	if err != nil {
-		log.Fatal(err)
+		util.Error("Notifier", err.Error())
 	}
 	tgc, err := tg.NewBotAPI(tgToken)
 	if err != nil {
@@ -40,7 +40,7 @@ func NewNotifier(secret, accessToken, tgToken string) *Notifier {
 	}
 	n.users["kuroiro_sagishi"] = 441247007
 	n.users["liverpool1026"] = 1023854566
-	go n.tgReceive()
+	n.users["twoblade"] = 928075336
 	return n
 }
 
@@ -63,7 +63,7 @@ func (n *Notifier) lineBroadcast(message string) {
 		}
 	}
 }
-func (n *Notifier) tgReceive() {
+func (n *Notifier) Listen() {
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := n.tgClient.GetUpdatesChan(u)
@@ -111,6 +111,6 @@ func (n *Notifier) tgBroadcast(message string) {
 		n.tgClient.Send(msg)
 	}
 }
-func (n *Notifier)Broadcast(message string) {
-	n.tgBroadcast(message)
+func (n *Notifier)Broadcast(from, message string) {
+	n.tgBroadcast(fmt.Sprintf("[%s] %s", from, message))
 }

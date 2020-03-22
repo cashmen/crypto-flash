@@ -25,6 +25,7 @@ type SignalProvider struct {
 	initBalance float64
 	balance float64
 	notifier *Notifier
+	signalChan chan<- *util.Signal
 }
 // strategy configuration
 const (
@@ -45,6 +46,7 @@ func NewSignalProvider(ftx *exchange.FTX, notifier *Notifier) *SignalProvider {
 		initBalance: initBalance,
 		balance: initBalance,
 		notifier: notifier,
+		signalChan: nil,
 	}
 }
 func (sp *SignalProvider) Backtest(startTime, endTime int64) {
@@ -86,7 +88,7 @@ func (sp *SignalProvider) notifyROI() {
 	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
 	ar := roi * (86400 * 365) / runTime.Seconds()
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
-	sp.notifier.Broadcast(msg)
+	sp.notifier.Broadcast(sp.tag, msg)
 }
 func (sp *SignalProvider) notifyClosePosition(price, roi float64, reason string) {
 	if sp.notifier == nil {
@@ -95,7 +97,7 @@ func (sp *SignalProvider) notifyClosePosition(price, roi float64, reason string)
 	msg := fmt.Sprintf("close %s @ %.2f due to %s\n", 
 		sp.position.Side, price, reason)
 	msg += fmt.Sprintf("ROI: %.2f%%", roi * 100)
-	sp.notifier.Broadcast(msg)
+	sp.notifier.Broadcast(sp.tag, msg)
 	sp.notifyROI()
 }
 func (sp *SignalProvider) notifyOpenPosition(reason string) {
@@ -104,7 +106,7 @@ func (sp *SignalProvider) notifyOpenPosition(reason string) {
 	}
 	msg := fmt.Sprintf("start %s @ %.2f due to %s", 
 		sp.position.Side, sp.position.OpenPrice, reason)
-	sp.notifier.Broadcast(msg)
+	sp.notifier.Broadcast(sp.tag, msg)
 }
 func (sp *SignalProvider) genSignal(
 		candle *util.Candle, superTrend float64, stop float64) {
@@ -155,6 +157,11 @@ func (sp *SignalProvider) genSignal(
 			sp.notifyClosePosition(price, roi, "take profit or stop loss")
 			sp.prevSide = sp.position.Side
 			sp.position = nil
+			sp.signalChan <- &util.Signal{ 
+				Market: market, 
+				Side: "close",
+				Reason: "take profit or stop loss",
+			}
 		}
 	} else if sp.position != nil && sp.position.Side == "short" {
 		if candle.Close >= stop {
@@ -164,6 +171,11 @@ func (sp *SignalProvider) genSignal(
 			sp.notifyClosePosition(price, roi, "take profit or stop loss")
 			sp.prevSide = sp.position.Side
 			sp.position = nil
+			sp.signalChan <- &util.Signal{ 
+				Market: market, 
+				Side: "close",
+				Reason: "take profit or stop loss",
+			}
 		}
 	}
 	if (sp.position == nil || sp.position.Side == "long") && 
@@ -175,6 +187,16 @@ func (sp *SignalProvider) genSignal(
 			roi := sp.position.Close(candle.Close)
 			sp.balance *= 1 + roi
 			sp.notifyClosePosition(candle.Close, roi, "SuperTrend")
+			sp.signalChan <- &util.Signal{ 
+				Market: market, 
+				Side: "close",
+				Reason: "SuperTrend",
+			}
+		}
+		sp.signalChan <- &util.Signal{ 
+			Market: market, 
+			Side: "short",
+			Reason: "SuperTrend",
 		}
 		sp.position = util.NewPosition("short", sp.balance, candle.Close)
 		util.Info(sp.tag, 
@@ -189,6 +211,16 @@ func (sp *SignalProvider) genSignal(
 			roi := sp.position.Close(candle.Close)
 			sp.balance *= 1 + roi
 			sp.notifyClosePosition(candle.Close, roi, "SuperTrend")
+			sp.signalChan <- &util.Signal{ 
+				Market: market, 
+				Side: "close",
+				Reason: "SuperTrend",
+			}
+		}
+		sp.signalChan <- &util.Signal{ 
+			Market: market, 
+			Side: "long", 
+			Reason: "SuperTrend",
 		}
 		sp.position = util.NewPosition("long", sp.balance, candle.Close)
 		util.Info(sp.tag, 
@@ -199,7 +231,8 @@ func (sp *SignalProvider) genSignal(
 	util.Info(sp.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", sp.balance, roi * 100))
 }
-func (sp *SignalProvider) Start() {
+func (sp *SignalProvider) Start(signalChan chan<- *util.Signal) {
+	sp.signalChan = signalChan
 	sp.startTime = time.Now()
 	st := indicator.NewSuperTrend(3, 10)
 	stopST := indicator.NewSuperTrend(3, 10)
