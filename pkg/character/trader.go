@@ -107,12 +107,12 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 					Type: "market",
 					Size: t.position.Size,
 				}
-				t.ftx.MakeOrder(order)
+				go t.ftx.MakeOrder(order)
 				util.Info(t.tag, 
 					fmt.Sprintf("close short position @ %.2f", curMP))
 				roi := t.position.Close(curMP)
 				t.wallet = t.ftx.GetWallet()
-				t.notifyClosePosition(curMP, roi, "Signal Provider")
+				go t.notifyClosePosition(curMP, roi, "Signal Provider")
 				t.position = nil
 			} else if t.position.Side == "long" {
 				// close long position
@@ -124,17 +124,16 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 					Type: "market",
 					Size: t.position.Size,
 				}
-				t.ftx.MakeOrder(order)
+				go t.ftx.MakeOrder(order)
 				util.Info(t.tag, 
 					fmt.Sprintf("close long position @ %.2f", curMP))
 				roi := t.position.Close(curMP)
 				t.wallet = t.ftx.GetWallet()
-				t.notifyClosePosition(curMP, roi, signal.Reason)
+				go t.notifyClosePosition(curMP, roi, signal.Reason)
 				t.position = nil
 			}
 		} else if signal.Side == "long" {
 			curMP := orderbook.Ask[0].Price
-			t.wallet = t.ftx.GetWallet()
 			usdBalance := t.wallet.GetBalance("USD")
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
 			size := usdBalance / curMP * t.leverage
@@ -144,15 +143,15 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 				Type: "market",
 				Size: size,
 			}
-			t.ftx.MakeOrder(order)
+			go t.ftx.MakeOrder(order)
 			t.position = util.NewPosition("long", size, curMP)
 			util.Success(t.tag, 
 				fmt.Sprintf("open postition %s with size %.4f @ %.2f",
 				t.position.Side, t.position.Size, t.position.OpenPrice))
-			t.notifyOpenPosition(signal.Reason)
+			
+			go t.notifyOpenPosition(signal.Reason)
 		} else if signal.Side == "short" {
 			curMP := orderbook.Bid[0].Price
-			t.wallet = t.ftx.GetWallet()
 			usdBalance := t.wallet.GetBalance("USD")
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
 			size := usdBalance / curMP * t.leverage
@@ -162,12 +161,12 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 				Type: "market",
 				Size: size,
 			}
-			t.ftx.MakeOrder(order)
+			go t.ftx.MakeOrder(order)
 			t.position = util.NewPosition("short", size, curMP)
 			util.Success(t.tag, 
 				fmt.Sprintf("open postition %s with size %.4f @ %.2f",
 				t.position.Side, t.position.Size, t.position.OpenPrice))
-			t.notifyOpenPosition(signal.Reason)
+			go t.notifyOpenPosition(signal.Reason)
 		}
 	}
 }
