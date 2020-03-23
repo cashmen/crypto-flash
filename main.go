@@ -51,7 +51,7 @@ func main() {
 	
 	ftx := exchange.NewFTX(config.Ftx.Key, config.Ftx.Secret, 
 		config.Ftx.SubAccount)
-
+	
 	var n *character.Notifier
 	if (config.Notify) {
 		n = character.NewNotifier(config.Line.Channel_Secret, 
@@ -76,7 +76,7 @@ func main() {
 	/*
 	sp := character.NewSignalProvider(ftx, nil)
 	endTime := time.Now()
-	d := util.Duration{ Day: -3 }
+	d := util.Duration{ Day: -5 }
 	startTime := endTime.Add(d.GetTimeDuration())
 	sp.Backtest(startTime.Unix(), endTime.Unix())
 	*/

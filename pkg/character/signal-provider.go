@@ -30,7 +30,7 @@ type SignalProvider struct {
 // strategy configuration
 const (
 	warmUpCandleNum = 40
-	takeProfit = 350
+	takeProfit = 200
 	stopLoss = 100
 	initBalance = 1000000
 	market = "BTC-PERP"
@@ -51,7 +51,7 @@ func NewSignalProvider(ftx *exchange.FTX, notifier *Notifier) *SignalProvider {
 }
 func (sp *SignalProvider) Backtest(startTime, endTime int64) {
 	st := indicator.NewSuperTrend(3, 10)
-	stopST := indicator.NewSuperTrend(3, 10)
+	stopST := indicator.NewSuperTrend(2, 10)
 	candles := 
 		sp.ftx.GetHistoryCandles(market, resolution, startTime, endTime)
 	if len(candles) <= warmUpCandleNum {
@@ -157,10 +157,12 @@ func (sp *SignalProvider) genSignal(
 			sp.notifyClosePosition(price, roi, "take profit or stop loss")
 			sp.prevSide = sp.position.Side
 			sp.position = nil
-			sp.signalChan <- &util.Signal{ 
-				Market: market, 
-				Side: "close",
-				Reason: "take profit or stop loss",
+			if sp.signalChan != nil {
+				sp.signalChan <- &util.Signal{ 
+					Market: market, 
+					Side: "close",
+					Reason: "take profit or stop loss",
+				}
 			}
 		}
 	} else if sp.position != nil && sp.position.Side == "short" {
@@ -171,10 +173,12 @@ func (sp *SignalProvider) genSignal(
 			sp.notifyClosePosition(price, roi, "take profit or stop loss")
 			sp.prevSide = sp.position.Side
 			sp.position = nil
-			sp.signalChan <- &util.Signal{ 
-				Market: market, 
-				Side: "close",
-				Reason: "take profit or stop loss",
+			if sp.signalChan != nil {
+				sp.signalChan <- &util.Signal{ 
+					Market: market, 
+					Side: "close",
+					Reason: "take profit or stop loss",
+				}
 			}
 		}
 	}
@@ -187,16 +191,20 @@ func (sp *SignalProvider) genSignal(
 			roi := sp.position.Close(candle.Close)
 			sp.balance *= 1 + roi
 			sp.notifyClosePosition(candle.Close, roi, "SuperTrend")
-			sp.signalChan <- &util.Signal{ 
-				Market: market, 
-				Side: "close",
-				Reason: "SuperTrend",
+			if sp.signalChan != nil {
+				sp.signalChan <- &util.Signal{ 
+					Market: market, 
+					Side: "close",
+					Reason: "SuperTrend",
+				}
 			}
 		}
-		sp.signalChan <- &util.Signal{ 
-			Market: market, 
-			Side: "short",
-			Reason: "SuperTrend",
+		if sp.signalChan != nil {
+			sp.signalChan <- &util.Signal{ 
+				Market: market, 
+				Side: "short",
+				Reason: "SuperTrend",
+			}
 		}
 		sp.position = util.NewPosition("short", sp.balance, candle.Close)
 		util.Info(sp.tag, 
@@ -211,16 +219,20 @@ func (sp *SignalProvider) genSignal(
 			roi := sp.position.Close(candle.Close)
 			sp.balance *= 1 + roi
 			sp.notifyClosePosition(candle.Close, roi, "SuperTrend")
-			sp.signalChan <- &util.Signal{ 
-				Market: market, 
-				Side: "close",
-				Reason: "SuperTrend",
+			if sp.signalChan != nil {
+				sp.signalChan <- &util.Signal{ 
+					Market: market, 
+					Side: "close",
+					Reason: "SuperTrend",
+				}
 			}
 		}
-		sp.signalChan <- &util.Signal{ 
-			Market: market, 
-			Side: "long", 
-			Reason: "SuperTrend",
+		if sp.signalChan != nil {
+			sp.signalChan <- &util.Signal{ 
+				Market: market, 
+				Side: "long", 
+				Reason: "SuperTrend",
+			}
 		}
 		sp.position = util.NewPosition("long", sp.balance, candle.Close)
 		util.Info(sp.tag, 
