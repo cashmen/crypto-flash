@@ -3,6 +3,7 @@ package indicator
 import util "github.com/CheshireCatNick/crypto-flash/pkg/util"
 
 type Supertrend struct {
+	Tag string
 	period int
 	multiplier float64
 	atr *ATR
@@ -12,9 +13,9 @@ type Supertrend struct {
 	prevCandle *util.Candle
 }
 
-const tag = "Supertrend"
 func NewSupertrend(multiplier float64, period int) *Supertrend {
 	return &Supertrend{
+		Tag: "Supertrend",
 		period: period,
 		multiplier: multiplier,
 		atr: NewATR(period),
@@ -55,17 +56,17 @@ func (st *Supertrend) Update(candle *util.Candle) float64 {
 		finalLowerBand = st.prevFinalLowerBand
 	}
 	/* another version
-	if candles[i].Close <= finalUpperBand {
+	if candle.Close <= finalUpperBand {
 		superTrend = finalUpperBand
 	} else {
 		superTrend = finalLowerBand
 	}*/
 	if candle.Close >= finalUpperBand {
-		util.Info(tag, util.Green("trend up"))
+		util.Info(st.Tag, util.Green("trend up"))
 		supertrend = finalLowerBand
 		st.prevTrend = "up"
 	} else if candle.Close <= finalLowerBand {
-		util.Info(tag, util.Red("trend down"))
+		util.Info(st.Tag, util.Red("trend down"))
 		supertrend = finalUpperBand
 		st.prevTrend = "down"
 	} else {

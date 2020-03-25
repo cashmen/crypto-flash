@@ -21,7 +21,6 @@ const (
 )
 // convert my duration to time.Duration
 func (d *Duration) GetTimeDuration() time.Duration {
-	
 	return time.Duration(d.Year * yToNano + d.Month * monthToNano +
 		d.Day * dToNano + d.Hour * hToNano + d.Minute * mToNano + 
 		d.Second * sToNano)

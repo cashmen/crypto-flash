@@ -1,5 +1,7 @@
 /*
-// The main program of crypto flash.
+// TODO:
+// 1. tests
+// 2. consider having exchange interface, signal provider interface
 */
 package main
 
@@ -65,20 +67,21 @@ func main() {
 		n = nil
 	}
 
-	sp := character.NewSignalProvider(ftx, n)
+	sp := character.NewResTrend(ftx, n)
 	trader := character.NewTrader(ftx, n)
 	signalChan := make(chan *util.Signal)
+
 	wg.Add(1)
 	go sp.Start(signalChan)
 	wg.Add(1)
 	go trader.Start(signalChan)
-	
 	/*
-	sp := character.NewSignalProvider(ftx, nil)
 	endTime := time.Now()
-	d := util.Duration{ Day: -5 }
+	d := util.Duration{ Day: -15 }
 	startTime := endTime.Add(d.GetTimeDuration())
-	sp.Backtest(startTime.Unix(), endTime.Unix())
+	roi := sp.Backtest(startTime.Unix(), endTime.Unix())
+	annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
+	fmt.Printf("Annual: %.2f%%", annual * 100)
 	*/
 	wg.Wait()
 }

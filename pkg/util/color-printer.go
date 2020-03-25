@@ -4,6 +4,8 @@ import color "github.com/fatih/color"
 import "fmt"
 import "time"
 
+const debug = true
+
 var (
 	Red = color.RedString
 	Blue = color.HiBlueString
@@ -29,6 +31,9 @@ func PI64(n int64) string {
 	return fmt.Sprintf("%d", n)
 }
 func print(color string, s ...string) {
+	if !debug {
+		return
+	}
 	tag := ""
 	switch color {
 	case "red":

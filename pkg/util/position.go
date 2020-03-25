@@ -25,7 +25,7 @@ func (pos *Position) Close(closePrice float64) float64 {
 		roiStr = Red(roiStr)
 	}
 	Info(tag, fmt.Sprintf(
-		"close %s, open price: %f, current price: %f, ROI: %s", 
+		"close %s, open price: %.2f, current price: %.2f, ROI: %s", 
 		pos.Side, pos.OpenPrice, closePrice, roiStr))
 	return roi
 }

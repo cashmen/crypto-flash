@@ -112,7 +112,7 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 					fmt.Sprintf("close short position @ %.2f", curMP))
 				roi := t.position.Close(curMP)
 				t.wallet = t.ftx.GetWallet()
-				go t.notifyClosePosition(curMP, roi, "Signal Provider")
+				t.notifyClosePosition(curMP, roi, "Signal Provider")
 				t.position = nil
 			} else if t.position.Side == "long" {
 				// close long position
@@ -129,7 +129,7 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 					fmt.Sprintf("close long position @ %.2f", curMP))
 				roi := t.position.Close(curMP)
 				t.wallet = t.ftx.GetWallet()
-				go t.notifyClosePosition(curMP, roi, signal.Reason)
+				t.notifyClosePosition(curMP, roi, signal.Reason)
 				t.position = nil
 			}
 		} else if signal.Side == "long" {
