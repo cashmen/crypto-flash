@@ -1,9 +1,12 @@
 {
-    "ftx": {
-        "key": "",
-        "secret": "",
-        "subAccount": ""
-    },
+    "users": [
+        {
+            "name": "",
+            "key": "",
+            "secret": "",
+            "subAccount": ""
+        }
+    ],
     "notify": true,
     "line": {
         "channel_secret": "",
