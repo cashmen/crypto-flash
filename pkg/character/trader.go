@@ -23,6 +23,7 @@ import (
 // Trader represent a trader in crypto flash
 type Trader struct {
 	tag string
+	name string
 	startTime time.Time
 	ftx *exchange.FTX
 	notifier *Notifier
@@ -34,10 +35,11 @@ type Trader struct {
 }
 
 // NewTrader creates a trader instance
-func NewTrader(ftx *exchange.FTX, notifier *Notifier) *Trader {
+func NewTrader(name string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 	w := ftx.GetWallet()
 	return &Trader{
-		tag: "Trader",
+		tag: "Trader-" + name,
+		name: name,
 		ftx: ftx,
 		notifier: notifier,
 		wallet: w,
@@ -48,12 +50,11 @@ func NewTrader(ftx *exchange.FTX, notifier *Notifier) *Trader {
 		leverage: 1,
 	}
 }
-
 func (t *Trader) notifyROI() {
 	if t.notifier == nil {
 		return;
 	}
-	roi := (t.wallet.GetBalance("USD") - t.initBalance) / t.initBalance
+	roi := util.CalcROI(t.initBalance, t.wallet.GetBalance("USD"))
 	msg := "Report\n"
 	runTime := time.Now().Sub(t.startTime)
 	d := util.FromTimeDuration(runTime)
@@ -63,7 +64,7 @@ func (t *Trader) notifyROI() {
 	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
 	ar := roi * (86400 * 365) / runTime.Seconds()
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
-	t.notifier.Broadcast(t.tag, msg)
+	t.notifier.Send(t.name, t.tag, msg)
 }
 func (t *Trader) notifyClosePosition(price, roi float64, reason string) {
 	if t.notifier == nil {
@@ -72,7 +73,7 @@ func (t *Trader) notifyClosePosition(price, roi float64, reason string) {
 	msg := fmt.Sprintf("close %s @ %.2f due to %s\n", 
 		t.position.Side, price, reason)
 	msg += fmt.Sprintf("ROI: %.2f%%", roi * 100)
-	t.notifier.Broadcast(t.tag, msg)
+	t.notifier.Send(t.name, t.tag, msg)
 	t.notifyROI()
 }
 func (t *Trader) notifyOpenPosition(reason string) {
@@ -81,9 +82,52 @@ func (t *Trader) notifyOpenPosition(reason string) {
 	}
 	msg := fmt.Sprintf("start %s @ %.2f due to %s", 
 		t.position.Side, t.position.OpenPrice, reason)
-	t.notifier.Broadcast(t.tag, msg)
+	t.notifier.Send(t.name, t.tag, msg)
 }
-
+func (t *Trader) closePosition(market string, price float64, reason string) {
+	action := ""
+	if t.position.Side == "short" {
+		action = "buy"
+	} else if t.position.Side == "long" {
+		action = "sell"
+	}
+	order := &util.Order{
+		Market: market,
+		Side: action,
+		Type: "market",
+		Size: t.position.Size,
+	}
+	t.ftx.MakeOrder(order)
+	roi := t.position.Close(price)
+	t.wallet = t.ftx.GetWallet()
+	t.notifyClosePosition(price, roi, reason)
+	logMsg := fmt.Sprintf("close %s @ %.2f due to %s, ROI: %.2f%%", 
+		t.position.Side, price, reason, roi * 100)
+	if roi > 0 { 
+		util.Info(t.tag, util.Green(logMsg))
+	} else {
+		util.Info(t.tag, util.Red(logMsg))
+	}
+	t.position = nil
+}
+func (t *Trader) openPosition(
+		market, side string, size, price float64, reason string) {
+	order := &util.Order{
+		Market: market,
+		Side: side,
+		Type: "market",
+		Size: size,
+	}
+	t.ftx.MakeOrder(order)
+	t.position = util.NewPosition(side, size, price)
+	t.notifyOpenPosition(reason)
+	logMsg := fmt.Sprintf("start %s @ %.2f due to %s", side, price, reason)
+	if side == "long" {
+		util.Info(t.tag, util.Green(logMsg))
+	} else {
+		util.Info(t.tag, util.Red(logMsg))
+	}
+}
 // Run starts a trader
 func (t *Trader) Start(signalChan <-chan *util.Signal) {
 	t.startTime = time.Now()
@@ -95,78 +139,28 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 			continue
 		}
 		orderbook := t.ftx.GetOrderbook(signal.Market, 1)
+		var curMP float64
 		if signal.Side == "close" {
 			if t.position == nil {
 				continue
-			} else if t.position.Side == "short" {
-				// close short position
-				curMP := orderbook.Ask[0].Price
-				order := &util.Order{
-					Market: signal.Market,
-					Side: "buy",
-					Type: "market",
-					Size: t.position.Size,
-				}
-				go t.ftx.MakeOrder(order)
-				util.Info(t.tag, 
-					fmt.Sprintf("close short position @ %.2f", curMP))
-				roi := t.position.Close(curMP)
-				t.wallet = t.ftx.GetWallet()
-				t.notifyClosePosition(curMP, roi, "Signal Provider")
-				t.position = nil
+			}
+			if t.position.Side == "short" {
+				curMP = orderbook.Ask[0].Price
 			} else if t.position.Side == "long" {
-				// close long position
-				curMP := orderbook.Bid[0].Price
-				util.Info(t.tag, "close long position")
-				order := &util.Order{
-					Market: signal.Market,
-					Side: "sell",
-					Type: "market",
-					Size: t.position.Size,
-				}
-				go t.ftx.MakeOrder(order)
-				util.Info(t.tag, 
-					fmt.Sprintf("close long position @ %.2f", curMP))
-				roi := t.position.Close(curMP)
-				t.wallet = t.ftx.GetWallet()
-				t.notifyClosePosition(curMP, roi, signal.Reason)
-				t.position = nil
+				curMP = orderbook.Bid[0].Price
 			}
-		} else if signal.Side == "long" {
-			curMP := orderbook.Ask[0].Price
+			go t.closePosition(signal.Market, curMP, signal.Reason)	
+		} else if signal.Side == "long" || signal.Side == "short" {
+			if signal.Side == "long" {
+				curMP = orderbook.Ask[0].Price
+			} else if signal.Side == "short" {
+				curMP = orderbook.Bid[0].Price
+			}
 			usdBalance := t.wallet.GetBalance("USD")
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
 			size := usdBalance / curMP * t.leverage
-			order := &util.Order{
-				Market: signal.Market,
-				Side: "buy",
-				Type: "market",
-				Size: size,
-			}
-			go t.ftx.MakeOrder(order)
-			t.position = util.NewPosition("long", size, curMP)
-			util.Success(t.tag, 
-				fmt.Sprintf("open postition %s with size %.4f @ %.2f",
-				t.position.Side, t.position.Size, t.position.OpenPrice))
-			
-			go t.notifyOpenPosition(signal.Reason)
-		} else if signal.Side == "short" {
-			curMP := orderbook.Bid[0].Price
-			usdBalance := t.wallet.GetBalance("USD")
-			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
-			size := usdBalance / curMP * t.leverage
-			order := &util.Order{
-				Market: signal.Market,
-				Side: "sell",
-				Type: "market",
-				Size: size,
-			}
-			go t.ftx.MakeOrder(order)
-			t.position = util.NewPosition("short", size, curMP)
-			util.Success(t.tag, 
-				fmt.Sprintf("open postition %s with size %.4f @ %.2f",
-				t.position.Side, t.position.Size, t.position.OpenPrice))
-			go t.notifyOpenPosition(signal.Reason)
+			go t.openPosition(
+				signal.Market, signal.Side, size, curMP, signal.Reason)
 		}
 	}
 }

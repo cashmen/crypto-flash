@@ -111,6 +111,13 @@ func (n *Notifier) tgBroadcast(message string) {
 		n.tgClient.Send(msg)
 	}
 }
-func (n *Notifier)Broadcast(from, message string) {
+func (n *Notifier) tgSend(to, message string) {
+	msg := tg.NewMessage(n.users[to], message)
+	n.tgClient.Send(msg)
+}
+func (n *Notifier) Broadcast(from, message string) {
 	n.tgBroadcast(fmt.Sprintf("[%s] %s", from, message))
+}
+func (n *Notifier) Send(from, to, message string) {
+	n.tgSend(to, fmt.Sprintf("[%s] %s", from, message))
 }

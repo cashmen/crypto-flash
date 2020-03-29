@@ -22,6 +22,7 @@ type SignalProvider struct {
 	balance float64
 	notifier *Notifier
 	signalChan chan<- *util.Signal
+	chans []chan<- *util.Signal
 }
 
 func (sp *SignalProvider) notifyROI() {
@@ -62,7 +63,7 @@ func (sp *SignalProvider) closePosition(price float64, reason string) {
 	roi := sp.position.Close(price)
 	sp.balance *= 1 + roi
 	logMsg := fmt.Sprintf("close %s @ %.2f due to %s, ROI: %.2f%%", 
-		sp.position.Side, price, reason, roi)
+		sp.position.Side, price, reason, roi * 100)
 	if roi > 0 { 
 		util.Info(sp.tag, util.Green(logMsg))
 	} else {
@@ -83,8 +84,10 @@ func (sp *SignalProvider) openPosition(
 	sp.notifyOpenPosition(reason)
 }
 func (sp *SignalProvider) sendSignal(s *util.Signal) {
-	if sp.signalChan != nil {
-		sp.signalChan<-s
+	for _, c := range sp.chans {
+		c<-s
 	}
 }
-
+func (sp *SignalProvider) SubSignal(signalChan chan<- *util.Signal) {
+	sp.chans = append(sp.chans, signalChan)
+}
