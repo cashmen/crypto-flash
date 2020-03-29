@@ -22,17 +22,17 @@ type ResTrend struct {
 	mainMul float64
 	mainRes int
 	period int
+	warmUpCandleNum int
+	takeProfit float64
+	stopLoss float64
+	// data
 	st *indicator.Supertrend
 	mainST *indicator.Supertrend
-	warmUpCandleNum int
 	prevSupertrend float64
-	prevMainSupertrend float64
 	trend string
 	prevTrend string
 	mainTrend string
-	prevMainTrend string
-	takeProfit float64
-	stopLoss float64
+	mainCandle *util.Candle
 }
 func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 	return &ResTrend{
@@ -46,84 +46,109 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 			signalChan: nil,
 		},
 		ftx: ftx,
+		// config
 		market: "BTC-PERP",
 		mul: 1,
-		res: 300, // 15 (for test), 60, 300 or 900
+		res: 900, // 15 (for test), 60, 300 or 900
 		mainMul: 1,
-		mainRes: 3600, // 60 (for test), 3600 or 14400
-		period: 1,
+		mainRes: 14400, // 60 (for test), 3600 or 14400
+		period: 3,
 		warmUpCandleNum: 40,
 		takeProfit: 200,
 		stopLoss: 100,
+		// data
+		mainCandle: nil,
 	}
 }
 func (rt *ResTrend) Backtest(startTime, endTime int64) float64 {
 	candles := 
 		rt.ftx.GetHistoryCandles(rt.market, rt.res, startTime, endTime)
-	mainCandles :=
-		rt.ftx.GetHistoryCandles(rt.market, rt.mainRes, startTime, endTime)
 	if len(candles) == 5000 {
 		util.Error(rt.tag, "Can't have more candles.")
 	}
 	rt.warmUp(startTime)
 	util.Info(rt.tag, "start backtesting")
-	currentMainI := 0
 	for _, candle := range candles {
-		if currentMainI < len(mainCandles) &&
-				candle.StartTime == mainCandles[currentMainI].StartTime {
-			rt.genSignal(mainCandles[currentMainI], rt.mainRes)
-			currentMainI++
-		}
-		rt.genSignal(candle, rt.res)
+		rt.genSignal(candle)
 	}
 	roi := util.CalcROI(rt.initBalance, rt.balance)
 	util.Info(rt.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", rt.balance, roi * 100))
 	return roi
 }
-func (rt *ResTrend) genSignal(candle *util.Candle, res int) {
+func (rt *ResTrend) genSignal(candle *util.Candle) {
+	util.Info(rt.tag, "received candle", candle.String())
 	var supertrend, mainSupertrend float64
-	if res == rt.res {
-		supertrend = rt.st.Update(candle)
-		util.Info(rt.tag, "received candle", candle.String())
-		util.Info(rt.tag, "supertrend", util.PF64(supertrend))
-		if candle.Close > supertrend {
-			rt.trend = "bull"
-		} else if candle.Close < supertrend {
-			rt.trend = "bear"
+	supertrend = rt.st.Update(candle)
+	if candle.GetTime().Unix() % int64(rt.mainRes) == 0 {
+		rt.mainCandle = candle
+	} else {
+		rt.mainCandle.Update(candle)
+	}
+	if (candle.GetTime().Unix() + int64(rt.res)) % 
+			int64(rt.mainRes) == 0 {
+		mainSupertrend = rt.mainST.Update(rt.mainCandle)
+		if candle.Close > mainSupertrend {
+			rt.mainTrend = "bull"
+		} else if candle.Close < mainSupertrend {
+			rt.mainTrend = "bear"
 		}
-	} else if res == rt.mainRes {
-		mainSupertrend = rt.mainST.Update(candle)
-		util.Info(rt.tag, "received main candle", candle.String())
-		util.Info(rt.tag, "main supertrend", util.PF64(mainSupertrend))
+	} else {
+		mainSupertrend = rt.mainST.Predict(rt.mainCandle)
 		if candle.Close > mainSupertrend {
 			rt.mainTrend = "bull"
 		} else if candle.Close < mainSupertrend {
 			rt.mainTrend = "bear"
 		}
 	}
-	if (rt.trend == "" || rt.prevTrend == "" || 
-			rt.mainTrend == "" || rt.prevMainTrend == "") {
+	if candle.Close > supertrend {
+		rt.trend = "bull"
+	} else if candle.Close < supertrend {
+		rt.trend = "bear"
+	}
+	if (rt.trend == "" || rt.prevTrend == "" || rt.mainTrend == "") {
 		return
 	}
+	util.Info(rt.tag, 
+		fmt.Sprintf("st: %f, mainST: %f", supertrend, mainSupertrend))
 	util.Info(rt.tag, "prevTrend:", rt.prevTrend)
 	util.Info(rt.tag, "trend:", rt.trend)
-	util.Info(rt.tag, "prevMainTrend:", rt.prevMainTrend)
 	util.Info(rt.tag, "mainTrend:", rt.mainTrend)
 	// const take profit or stop loss
 	if rt.position != nil && rt.position.Side == "long" {
 		if candle.High - rt.position.OpenPrice >= rt.takeProfit {
+			rt.sendSignal(&util.Signal{ 
+				Market: rt.market, 
+				Side: "close",
+				Reason: "take profit",
+			})
 			price := rt.position.OpenPrice + rt.takeProfit
 			rt.closePosition(price, "take profit")
+
 		} else if (rt.position.OpenPrice - candle.Low >= rt.stopLoss) {
+			rt.sendSignal(&util.Signal{ 
+				Market: rt.market, 
+				Side: "close",
+				Reason: "stop loss",
+			})
 			price := rt.position.OpenPrice - rt.stopLoss
 			rt.closePosition(price, "stop loss")
 		}
 	} else if rt.position != nil && rt.position.Side == "short" {
 		if candle.High - rt.position.OpenPrice >= rt.stopLoss {
+			rt.sendSignal(&util.Signal{ 
+				Market: rt.market, 
+				Side: "close",
+				Reason: "stop loss",
+			})
 			price := rt.position.OpenPrice + rt.stopLoss
 			rt.closePosition(price, "stop loss")
 		} else if (rt.position.OpenPrice - candle.Low >= rt.takeProfit) {
+			rt.sendSignal(&util.Signal{ 
+				Market: rt.market, 
+				Side: "close",
+				Reason: "take profit",
+			})
 			price := rt.position.OpenPrice - rt.takeProfit
 			rt.closePosition(price, "take profit")
 		}
@@ -169,20 +194,18 @@ func (rt *ResTrend) genSignal(candle *util.Candle, res int) {
 		if rt.position != nil && rt.position.Side == "long" {
 			// close long position
 			// close price should be market price
-			rt.closePosition(candle.Close, "Supertrend")
-			/*
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
 				Reason: "Supertrend",
-			})*/
+			})
+			rt.closePosition(candle.Close, "Supertrend")
 		}
-		/*
 		rt.sendSignal(&util.Signal{ 
 			Market: rt.market, 
 			Side: "short",
 			Reason: "Supertrend",
-		})*/
+		})
 		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
 				(rt.trend == "bull" && rt.prevTrend == "bear" && 
@@ -190,32 +213,25 @@ func (rt *ResTrend) genSignal(candle *util.Candle, res int) {
 		if rt.position != nil && rt.position.Side == "short" {
 			// close short position
 			// close price should be market price
-			rt.closePosition(candle.Close, "Supertrend")
-			/*
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
 				Reason: "Supertrend",
-			})*/
+			})
+			rt.closePosition(candle.Close, "Supertrend")
 		}
-		/*
 		rt.sendSignal(&util.Signal{ 
 			Market: rt.market, 
 			Side: "long",
 			Reason: "Supertrend",
-		})*/
+		})
 		rt.openPosition("long", rt.balance, candle.Close, "Supertrend")
 	}
 	roi := util.CalcROI(rt.initBalance, rt.balance)
 	util.Info(rt.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", rt.balance, roi * 100))
-	if res == rt.res {
-		rt.prevSupertrend = supertrend
-		rt.prevTrend = rt.trend
-	} else if res == rt.mainRes {
-		rt.prevMainSupertrend = mainSupertrend
-		rt.prevMainTrend = rt.mainTrend
-	}
+	rt.prevSupertrend = supertrend
+	rt.prevTrend = rt.trend
 }/*
 func (rt *ResTrend) AdjustParams() {
 	ftx := exchange.NewFTX("", "", "")
@@ -276,30 +292,32 @@ func (rt *ResTrend) warmUp(from int64) {
 			rt.trend = "bear"
 		}
 	}
+	mainCandleStart := len(candles) - 1
+	for ; mainCandleStart >= 0; mainCandleStart-- {
+		candleTime := candles[mainCandleStart].GetTime()
+		if candleTime.Unix() % int64(rt.mainRes) == 0 {
+			break
+		}
+	}
+	rt.mainCandle = candles[mainCandleStart]
+	for i := mainCandleStart + 1; i < len(candles); i++ {
+		rt.mainCandle.Update(candles[i])
+	}
 	candles = rt.getCandles(from, rt.mainRes)
 	for _, candle := range candles {
-		rt.prevMainSupertrend = rt.mainST.Update(candle)
-		rt.prevMainTrend = rt.mainTrend
-		if candle.Close > rt.prevMainSupertrend {
+		mainSupertrend := rt.mainST.Update(candle)
+		if candle.Close > mainSupertrend {
 			rt.mainTrend = "bull"
-		} else if candle.Close < rt.prevMainSupertrend {
+		} else if candle.Close < mainSupertrend {
 			rt.mainTrend = "bear"
 		}
 	}
 }
-func (rt *ResTrend) Start(signalChan chan<- *util.Signal) {
-	rt.signalChan = signalChan
+func (rt *ResTrend) Start() {
 	rt.warmUp(time.Now().Unix())
 	candleChan := make(chan *util.Candle)
-	mainCandleChan := make(chan *util.Candle)
 	go rt.ftx.SubCandle(rt.market, rt.res, candleChan);
-	go rt.ftx.SubCandle(rt.market, rt.mainRes, mainCandleChan);
-	for {
-		select {
-		case candle := <-candleChan:
-			rt.genSignal(candle, rt.res)
-		case candle := <-mainCandleChan:
-			rt.genSignal(candle, rt.mainRes)
-		}
+	for candle := range candleChan {
+		rt.genSignal(candle)
 	}
 }

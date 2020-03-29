@@ -38,3 +38,15 @@ func (atr *ATR) updateTR(candle *util.Candle) float64 {
 func (atr *ATR) Update(candle *util.Candle) float64 {
 	return atr.rma.Update(atr.updateTR(candle))
 }
+func (atr *ATR) predictTR(candle *util.Candle) float64 {
+	if atr.prevCandle == nil {
+		return candle.High - candle.Low
+	}
+	a := candle.High - candle.Low
+	b := math.Abs(candle.High - atr.prevCandle.Close)
+	c := math.Abs(candle.Low - atr.prevCandle.Close)
+	return math.Max(math.Max(a, b), c)
+}
+func (atr *ATR) Predict(candle *util.Candle) float64 {
+	return atr.rma.Predict(atr.predictTR(candle))
+}

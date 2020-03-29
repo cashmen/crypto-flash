@@ -29,3 +29,15 @@ func (rma *RMA) Update(val float64) float64 {
 	}
 	return rma.prevRMA
 }
+func (rma *RMA) Predict(val float64) float64 {
+	windowSize := rma.windowSize
+	if windowSize < rma.period {
+		windowSize++
+	}
+	if (windowSize == 1) {
+		return val
+	} else {
+		return (rma.prevRMA * (float64(windowSize) - 1) + val) / 
+			float64(windowSize)
+	}
+}

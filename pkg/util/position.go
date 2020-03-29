@@ -18,7 +18,7 @@ func (pos *Position) Close(closePrice float64) float64 {
 	if pos.Side == "short" {
 		roi *= -1
 	}
-	roiStr := PF64(roi)
+	roiStr := PF64(roi * 100)
 	if roi > 0 {
 		roiStr = Green(roiStr)
 	} else {
