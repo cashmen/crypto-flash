@@ -188,6 +188,7 @@ func (ftx *FTX) MakeOrder(order *util.Order) int64 {
 	var resObj res
 	ftx.restClient.Post(url, header, order.GetBuffer(), &resObj)
 	if !resObj.Success {
+		fmt.Println(resObj)
 		util.Error(ftx.tag, "Make Order Error")
 	}
 	return resObj.Result.Id

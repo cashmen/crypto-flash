@@ -112,9 +112,15 @@ func (t *Trader) closePosition(market string, price float64, reason string) {
 }
 func (t *Trader) openPosition(
 		market, side string, size, price float64, reason string) {
+	action := ""
+	if side == "long" {
+		action = "buy"
+	} else if side == "short" {
+		action = "sell"
+	}
 	order := &util.Order{
 		Market: market,
-		Side: side,
+		Side: action,
 		Type: "market",
 		Size: size,
 	}
