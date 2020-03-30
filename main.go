@@ -18,7 +18,7 @@ import (
 
 const tag = "Crypto Flash"
 // mode: trade, notify, backtest
-const mode = "trade"
+const mode = "notify"
 
 type user struct {
 	Name string
@@ -67,6 +67,7 @@ func main() {
 	} else {
 		n = nil
 	}
+	n.Send(tag, "kuroiro_sagishi", "this is a test msg")
 	ftx := exchange.NewFTX("", "", "")
 	sp := character.NewResTrend(ftx, n)
 	if mode == "trade" {

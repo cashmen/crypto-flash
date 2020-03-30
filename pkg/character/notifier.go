@@ -112,6 +112,7 @@ func (n *Notifier) tgBroadcast(message string) {
 	}
 }
 func (n *Notifier) tgSend(to, message string) {
+	fmt.Println(to, n.users[to])
 	msg := tg.NewMessage(n.users[to], message)
 	n.tgClient.Send(msg)
 }

@@ -64,7 +64,7 @@ func (t *Trader) notifyROI() {
 	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
 	ar := roi * (86400 * 365) / runTime.Seconds()
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
-	t.notifier.Send(t.name, t.tag, msg)
+	t.notifier.Send(t.tag, t.name, msg)
 }
 func (t *Trader) notifyClosePosition(price, roi float64, reason string) {
 	if t.notifier == nil {
@@ -73,7 +73,7 @@ func (t *Trader) notifyClosePosition(price, roi float64, reason string) {
 	msg := fmt.Sprintf("close %s @ %.2f due to %s\n", 
 		t.position.Side, price, reason)
 	msg += fmt.Sprintf("ROI: %.2f%%", roi * 100)
-	t.notifier.Send(t.name, t.tag, msg)
+	t.notifier.Send(t.tag, t.name, msg)
 	t.notifyROI()
 }
 func (t *Trader) notifyOpenPosition(reason string) {
@@ -82,7 +82,7 @@ func (t *Trader) notifyOpenPosition(reason string) {
 	}
 	msg := fmt.Sprintf("start %s @ %.2f due to %s", 
 		t.position.Side, t.position.OpenPrice, reason)
-	t.notifier.Send(t.name, t.tag, msg)
+	t.notifier.Send(t.tag, t.name, msg)
 }
 func (t *Trader) closePosition(market string, price float64, reason string) {
 	action := ""

@@ -89,6 +89,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 	}
 	if (candle.GetTime().Unix() + int64(rt.res)) % 
 			int64(rt.mainRes) == 0 {
+		util.Info(rt.tag, "main candle", rt.mainCandle.String())
 		mainSupertrend = rt.mainST.Update(rt.mainCandle)
 		if candle.Close > mainSupertrend {
 			rt.mainTrend = "bull"
