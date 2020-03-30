@@ -12,5 +12,7 @@
         "channel_secret": "",
         "channel_access_token": ""
     },
-    "telegram": ""
+    "telegram": "",
+    "version": "",
+    "update": ""
 }

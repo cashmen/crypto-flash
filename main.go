@@ -35,7 +35,7 @@ type config struct {
 	Users []user
 	Line lineConfig
 	Telegram string
-	Version float32
+	Version string
 	Update string
 }
 
@@ -52,7 +52,7 @@ func loadConfig(fileName string) config {
 func main() {
 	var wg sync.WaitGroup
 	config := loadConfig("config.json")
-	fmt.Printf("Crypto Flash v%.1f initialized. Update: \n%s\n", 
+	fmt.Printf("Crypto Flash v%s initialized. Update: \n%s\n", 
 		config.Version, config.Update)
 	
 	var n *character.Notifier
@@ -62,7 +62,7 @@ func main() {
 		wg.Add(1)
 		go n.Listen()
 		n.Broadcast(tag, 
-			fmt.Sprintf("Crypto Flash v%.1f initialized. Update: \n%s", 
+			fmt.Sprintf("Crypto Flash v%s initialized. Update: \n%s", 
 			config.Version, config.Update))
 	} else {
 		n = nil
