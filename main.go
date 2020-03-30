@@ -67,7 +67,6 @@ func main() {
 	} else {
 		n = nil
 	}
-	n.Send(tag, "kuroiro_sagishi", "this is a test msg")
 	ftx := exchange.NewFTX("", "", "")
 	sp := character.NewResTrend(ftx, n)
 	if mode == "trade" {
