@@ -1,5 +1,7 @@
 package util
 
+import "fmt"
+
 type Wallet struct {
 	tag string
 	balances map[string] float64
@@ -28,7 +30,14 @@ func (w *Wallet) Decrease(coin string, amount float64) {
 }
 func (w *Wallet) GetBalance(coin string) float64 {
 	if _, exist := w.balances[coin]; !exist {
-		return -1
+		return 0
 	}
 	return w.balances[coin]
+}
+func (w *Wallet) String() string {
+	result := ""
+	for coin, balance := range w.balances {
+		result += fmt.Sprintf("%s: %f ", coin, balance)
+	}
+	return result
 }

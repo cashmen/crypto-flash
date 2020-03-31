@@ -37,6 +37,7 @@ type Trader struct {
 // NewTrader creates a trader instance
 func NewTrader(name string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 	w := ftx.GetWallet()
+	util.Success("Trader-" + name, "successfully get balance", w.String())
 	return &Trader{
 		tag: "Trader-" + name,
 		name: name,

@@ -18,7 +18,7 @@ import (
 
 const tag = "Crypto Flash"
 // mode: trade, notify, backtest
-const mode = "notify"
+const mode = "trade"
 
 type user struct {
 	Name string
@@ -86,7 +86,7 @@ func main() {
 	} else if mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2020-03-26T05:00:00+00:00")
 		endTime := time.Now()
-		d := util.Duration{ Day: -10 }
+		d := util.Duration{ Day: -30 }
 		startTime := endTime.Add(d.GetTimeDuration())
 		roi := sp.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())

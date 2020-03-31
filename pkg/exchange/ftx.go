@@ -137,7 +137,9 @@ func (ftx *FTX) genAuthHeader(method, path, body string) *http.Header {
 	payload := ts + method + path + body
 	signature := util.HMac(payload, ftx.secret)
 	header.Add("FTX-SIGN", signature)
-	header.Add("FTX-SUBACCOUNT", ftx.subAccount)
+	if ftx.subAccount != "" {
+		header.Add("FTX-SUBACCOUNT", ftx.subAccount)
+	}
 	return &header
 }
 func (ftx *FTX) GetWallet() *util.Wallet {

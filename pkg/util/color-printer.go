@@ -45,8 +45,9 @@ func print(color string, s ...string) {
 	case "yello":
 		tag = fmt.Sprintf("%s", Yellow(s[0]))
 	}
-	result := 
-		fmt.Sprintf("[%s] [%s]", tag, Cyan(time.Now().Format("1/2 15:04:05")))
+	loc, _ := time.LoadLocation("Asia/Taipei")
+	result := fmt.Sprintf("[%s] [%s]", 
+		tag, Cyan(time.Now().In(loc).Format("1/2 15:04:05")))
 	for i := 1; i < len(s); i++ {
 		result += " " + s[i]
 	}
@@ -63,5 +64,5 @@ func Success(s ...string) {
 }
 func Error(s ...string) {
 	print("red", s...)
-	panic(s)
+	//panic(s)
 }
