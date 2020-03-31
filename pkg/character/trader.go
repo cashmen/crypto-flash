@@ -32,13 +32,14 @@ type Trader struct {
 	ignoreFirstSignal bool
 	initBalance float64
 	leverage float64
+	getWalletPeriod time.Duration
 }
 
 // NewTrader creates a trader instance
 func NewTrader(name string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 	w := ftx.GetWallet()
 	util.Success("Trader-" + name, "successfully get balance", w.String())
-	return &Trader{
+	t := &Trader{
 		tag: "Trader-" + name,
 		name: name,
 		ftx: ftx,
@@ -49,12 +50,16 @@ func NewTrader(name string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 		// ignore first signal?
 		ignoreFirstSignal: false,
 		leverage: 1,
+		getWalletPeriod: 10 * 60 * time.Second,
 	}
+	go t.updateWallet()
+	return t;
 }
 func (t *Trader) notifyROI() {
 	if t.notifier == nil {
 		return;
 	}
+	t.wallet = t.ftx.GetWallet()
 	roi := util.CalcROI(t.initBalance, t.wallet.GetBalance("USD"))
 	msg := "Report\n"
 	runTime := time.Now().Sub(t.startTime)
@@ -85,6 +90,13 @@ func (t *Trader) notifyOpenPosition(reason string) {
 		t.position.Side, t.position.OpenPrice, reason)
 	t.notifier.Send(t.tag, t.name, msg)
 }
+func (t *Trader) updateWallet() {
+	for {
+		t.wallet = t.ftx.GetWallet()
+		util.Success(t.tag, "successfully get balance", t.wallet.String())
+		time.Sleep(t.getWalletPeriod)
+	}
+}
 func (t *Trader) closePosition(market string, price float64, reason string) {
 	action := ""
 	if t.position.Side == "short" {
@@ -100,7 +112,6 @@ func (t *Trader) closePosition(market string, price float64, reason string) {
 	}
 	t.ftx.MakeOrder(order)
 	roi := t.position.Close(price)
-	t.wallet = t.ftx.GetWallet()
 	t.notifyClosePosition(price, roi, reason)
 	logMsg := fmt.Sprintf("close %s @ %.2f due to %s, ROI: %.2f%%", 
 		t.position.Side, price, reason, roi * 100)

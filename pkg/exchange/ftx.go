@@ -5,7 +5,7 @@
 // TODO: 
 // 1. getHistoryCandles: if candles >= 5000, request many times and concat result
 // 3. getPosition
-// 4. makeOrder
+// 4. make conditional order
 // 5. exchange interface
 */
 package exchange

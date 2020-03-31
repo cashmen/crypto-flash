@@ -127,7 +127,6 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			})
 			price := rt.position.OpenPrice + rt.takeProfit
 			rt.closePosition(price, "take profit")
-
 		} else if (rt.position.OpenPrice - candle.Low >= rt.stopLoss) {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
@@ -208,6 +207,9 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			Market: rt.market, 
 			Side: "short",
 			Reason: "Supertrend",
+			Open: candle.Close,
+			TakeProfit: candle.Close - rt.takeProfit,
+			StopLoss: candle.Close + rt.stopLoss,
 		})
 		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
@@ -227,6 +229,9 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			Market: rt.market, 
 			Side: "long",
 			Reason: "Supertrend",
+			Open: candle.Close,
+			TakeProfit: candle.Close + rt.takeProfit,
+			StopLoss: candle.Close - rt.stopLoss,
 		})
 		rt.openPosition("long", rt.balance, candle.Close, "Supertrend")
 	}
