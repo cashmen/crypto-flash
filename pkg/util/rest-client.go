@@ -49,3 +49,16 @@ func (rc *RestClient) Post(url string, header *http.Header, body io.Reader,
 	req.Header.Add("Accept", "application/json")
 	rc.do(req, v)
 }
+func (rc *RestClient) Delete(url string, header *http.Header, body io.Reader, 
+		v interface{}) {
+	req, err := http.NewRequest("DELETE", url, body)
+	if err != nil {
+		Error(rc.tag, err.Error())
+	}
+	if header != nil {
+		req.Header = *header
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+	rc.do(req, v)
+}

@@ -28,11 +28,12 @@ type Trader struct {
 	ftx *exchange.FTX
 	notifier *Notifier
 	wallet *util.Wallet
+	market string
 	position *util.Position
 	ignoreFirstSignal bool
 	initBalance float64
 	leverage float64
-	getWalletPeriod time.Duration
+	updatePeriod time.Duration
 }
 
 // NewTrader creates a trader instance
@@ -46,13 +47,14 @@ func NewTrader(name string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 		notifier: notifier,
 		wallet: w,
 		initBalance: w.GetBalance("USD"),
+		market: "BTC-PERP",
 		position: nil,
 		// ignore first signal?
 		ignoreFirstSignal: false,
 		leverage: 1,
-		getWalletPeriod: 10 * 60 * time.Second,
+		updatePeriod: 10 * 60 * time.Second,
 	}
-	go t.updateWallet()
+	go t.updateStatus()
 	return t;
 }
 func (t *Trader) notifyROI() {
@@ -90,14 +92,25 @@ func (t *Trader) notifyOpenPosition(reason string) {
 		t.position.Side, t.position.OpenPrice, reason)
 	t.notifier.Send(t.tag, t.name, msg)
 }
-func (t *Trader) updateWallet() {
+func (t *Trader) updateStatus() {
 	for {
 		t.wallet = t.ftx.GetWallet()
-		util.Success(t.tag, "successfully get balance", t.wallet.String())
-		time.Sleep(t.getWalletPeriod)
+		util.Success(t.tag, "successfully update balance", t.wallet.String())
+		t.position = t.ftx.GetPosition(t.market)
+		if t.position != nil {
+			util.Success(t.tag, "successfully update position", 
+				t.position.String())
+		} else {
+			util.Success(t.tag, "no current position")
+		}
+		time.Sleep(t.updatePeriod)
 	}
 }
 func (t *Trader) closePosition(market string, price float64, reason string) {
+	t.position = t.ftx.GetPosition(market)
+	if t.position == nil {
+		return
+	}
 	action := ""
 	if t.position.Side == "short" {
 		action = "buy"
@@ -109,6 +122,7 @@ func (t *Trader) closePosition(market string, price float64, reason string) {
 		Side: action,
 		Type: "market",
 		Size: t.position.Size,
+		ReduceOnly: true,
 	}
 	t.ftx.MakeOrder(order)
 	roi := t.position.Close(price)
@@ -121,29 +135,70 @@ func (t *Trader) closePosition(market string, price float64, reason string) {
 		util.Info(t.tag, util.Red(logMsg))
 	}
 	t.position = nil
+	t.ftx.CancelAllOrder(market)
 }
-func (t *Trader) openPosition(
-		market, side string, size, price float64, reason string) {
-	action := ""
-	if side == "long" {
+func (t *Trader) openPosition(signal *util.Signal, size, price float64) {
+	var action, exitAction string
+	if signal.Side == "long" {
 		action = "buy"
-	} else if side == "short" {
+		exitAction = "sell"
+	} else if signal.Side == "short" {
 		action = "sell"
+		exitAction = "buy"
 	}
 	order := &util.Order{
-		Market: market,
+		Market: signal.Market,
 		Side: action,
 		Type: "market",
 		Size: size,
 	}
 	t.ftx.MakeOrder(order)
-	t.position = util.NewPosition(side, size, price)
-	t.notifyOpenPosition(reason)
-	logMsg := fmt.Sprintf("start %s @ %.2f due to %s", side, price, reason)
-	if side == "long" {
+	t.position = util.NewPosition(signal.Side, size, price)
+	t.notifyOpenPosition(signal.Reason)
+	logMsg := fmt.Sprintf("start %s @ %.2f due to %s", 
+		signal.Side, price, signal.Reason)
+	if signal.Side == "long" {
 		util.Info(t.tag, util.Green(logMsg))
 	} else {
 		util.Info(t.tag, util.Red(logMsg))
+	}
+	if signal.TakeProfit > 0 {
+		takeProfitOrder := &util.Order{
+			Market: signal.Market,
+			Side: exitAction,
+			Size: size,
+			Type: "takeProfit",
+			ReduceOnly: true,
+			RetryUntilFilled: true,
+			TriggerPrice: signal.TakeProfit,
+			//OrderPrice: 6500,
+		}
+		t.ftx.MakeOrder(takeProfitOrder)
+	}
+	if signal.StopLoss > 0 {
+		var order *util.Order
+		if signal.UseTrailingStop {
+			order = &util.Order{
+				Market: signal.Market,
+				Side: exitAction,
+				Size: size,
+				Type: "trailingStop",
+				ReduceOnly: true,
+				RetryUntilFilled: true,
+				TrailValue: signal.StopLoss - signal.Open,
+			}
+		} else {
+			order = &util.Order{
+				Market: signal.Market,
+				Side: exitAction,
+				Size: size,
+				Type: "stop",
+				ReduceOnly: true,
+				RetryUntilFilled: true,
+				TriggerPrice: signal.StopLoss,
+			}
+		}
+		t.ftx.MakeOrder(order)
 	}
 }
 // Run starts a trader
@@ -177,8 +232,7 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 			usdBalance := t.wallet.GetBalance("USD")
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
 			size := usdBalance / curMP * t.leverage
-			go t.openPosition(
-				signal.Market, signal.Side, size, curMP, signal.Reason)
+			go t.openPosition(signal, size, curMP)
 		}
 	}
 }

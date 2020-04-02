@@ -9,6 +9,7 @@ package character
 import (
 	"fmt"
 	"time"
+	"math"
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
 	indicator "github.com/CheshireCatNick/crypto-flash/pkg/indicator"
@@ -27,6 +28,7 @@ type ResTrend struct {
 	warmUpCandleNum int
 	takeProfit float64
 	stopLoss float64
+	useTrailingStop bool
 	// data
 	st *indicator.Supertrend
 	mainST *indicator.Supertrend
@@ -35,6 +37,8 @@ type ResTrend struct {
 	prevTrend string
 	mainTrend string
 	mainCandle *util.Candle
+	stopLossPrice float64
+	takeProfitPrice float64
 }
 func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 	return &ResTrend{
@@ -58,6 +62,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		warmUpCandleNum: 40,
 		takeProfit: 200,
 		stopLoss: 100,
+		useTrailingStop: true,
 		// data
 		mainCandle: nil,
 	}
@@ -119,7 +124,12 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 	util.Info(rt.tag, "mainTrend:", rt.mainTrend)
 	// const take profit or stop loss
 	if rt.position != nil && rt.position.Side == "long" {
-		if candle.High - rt.position.OpenPrice >= rt.takeProfit {
+		if rt.useTrailingStop {
+			rt.stopLossPrice = 
+				math.Max(rt.stopLossPrice, candle.High - rt.stopLoss)
+			util.Info(rt.tag, "current stop loss:", util.PF64(rt.stopLossPrice))
+		}
+		if candle.High >= rt.takeProfitPrice {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
@@ -127,7 +137,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			})
 			price := rt.position.OpenPrice + rt.takeProfit
 			rt.closePosition(price, "take profit")
-		} else if (rt.position.OpenPrice - candle.Low >= rt.stopLoss) {
+		} else if (candle.Low <= rt.stopLossPrice) {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
@@ -137,7 +147,12 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			rt.closePosition(price, "stop loss")
 		}
 	} else if rt.position != nil && rt.position.Side == "short" {
-		if candle.High - rt.position.OpenPrice >= rt.stopLoss {
+		if rt.useTrailingStop {
+			rt.stopLossPrice = 
+				math.Min(rt.stopLossPrice, candle.Low + rt.stopLoss)
+			util.Info(rt.tag, "current stop loss:", util.PF64(rt.stopLossPrice))
+		}
+		if candle.High >= rt.stopLossPrice {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
@@ -145,7 +160,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			})
 			price := rt.position.OpenPrice + rt.stopLoss
 			rt.closePosition(price, "stop loss")
-		} else if (rt.position.OpenPrice - candle.Low >= rt.takeProfit) {
+		} else if (candle.Low <= rt.takeProfitPrice) {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
@@ -203,13 +218,16 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			})
 			rt.closePosition(candle.Close, "Supertrend")
 		}
+		rt.takeProfitPrice = candle.Close - rt.takeProfit
+		rt.stopLossPrice = candle.Close + rt.stopLoss
 		rt.sendSignal(&util.Signal{ 
 			Market: rt.market, 
 			Side: "short",
 			Reason: "Supertrend",
 			Open: candle.Close,
-			TakeProfit: candle.Close - rt.takeProfit,
-			StopLoss: candle.Close + rt.stopLoss,
+			TakeProfit: rt.takeProfitPrice,
+			StopLoss: rt.stopLossPrice,
+			UseTrailingStop: rt.useTrailingStop,
 		})
 		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
@@ -225,13 +243,16 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			})
 			rt.closePosition(candle.Close, "Supertrend")
 		}
+		rt.takeProfitPrice = candle.Close + rt.takeProfit
+		rt.stopLossPrice = candle.Close - rt.stopLoss
 		rt.sendSignal(&util.Signal{ 
 			Market: rt.market, 
 			Side: "long",
 			Reason: "Supertrend",
 			Open: candle.Close,
-			TakeProfit: candle.Close + rt.takeProfit,
-			StopLoss: candle.Close - rt.stopLoss,
+			TakeProfit: rt.takeProfitPrice,
+			StopLoss: rt.stopLossPrice,
+			UseTrailingStop: rt.useTrailingStop,
 		})
 		rt.openPosition("long", rt.balance, candle.Close, "Supertrend")
 	}

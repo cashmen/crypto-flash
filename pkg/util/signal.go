@@ -7,5 +7,5 @@ type Signal struct {
 	Open float64
 	TakeProfit float64
 	StopLoss float64
-	UseTrailing bool
+	UseTrailingStop bool
 }

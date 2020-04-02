@@ -3,6 +3,7 @@ package util
 import "fmt"
 
 type Position struct {
+	Market string
 	Side string
 	Size float64
 	OpenPrice float64
@@ -28,4 +29,8 @@ func (pos *Position) Close(closePrice float64) float64 {
 		"close %s, open price: %.2f, current price: %.2f, ROI: %s", 
 		pos.Side, pos.OpenPrice, closePrice, roiStr))
 	return roi
+}
+func (pos *Position) String() string {
+	return fmt.Sprintf("Market: %s, Side: %s, Size: %f, OpenPrice: %f",
+		pos.Market, pos.Side, pos.Size, pos.OpenPrice)
 }

@@ -22,7 +22,8 @@ const (
 	marketAPI string = "/api/markets"
 	walletAPI string = "/api/wallet/balances"
 	orderAPI string = "/api/orders"
-	triggerOrderAPI string = "/api/conditional_orders"
+	condOrderAPI string = "/api/conditional_orders"
+	positionAPI string = "/api/positions"
 )
 
 type FTX struct {
@@ -158,9 +159,56 @@ func (ftx *FTX) GetWallet() *util.Wallet {
 	ftx.restClient.Get(url, header, &resObj)
 	wallet := util.NewWallet()
 	for _, coin := range resObj.Result {
-		wallet.Increase(coin.Coin, coin.Free)
+		wallet.Increase(coin.Coin, coin.Total)
 	}
 	return wallet
+}
+func (ftx *FTX) GetPosition(market string) *util.Position {
+	type resPos struct {
+		Cost float64
+		EntryPrice float64
+		EstimatedLiquidationPrice float64
+		Future string
+		InitialMarginRequirement float64
+		LongOrderSize float64
+		MaintenanceMarginRequirement float64
+		NetSize float64
+		OpenSize float64
+		RealizedPnl float64
+		ShortOrderSize float64
+		Side string
+		Size float64
+		UnrealizedPnl float64
+	}
+	type res struct {
+		Success bool
+		Result []resPos
+	}
+	url := host + positionAPI
+	header := ftx.genAuthHeader("GET", positionAPI, "")
+	var resObj res
+	ftx.restClient.Get(url, header, &resObj)
+	if !resObj.Success {
+		fmt.Println(resObj)
+		util.Error(ftx.tag, "Cancel all order error")
+	}
+	for _, pos := range resObj.Result {
+		if pos.Future == market && pos.Size != 0 {
+			var side string
+			if pos.Side == "sell" {
+				side = "short"
+			} else {
+				side = "long"
+			}
+			return &util.Position{
+				Market: pos.Future,
+				Side: side,
+				Size: pos.Size,
+				OpenPrice: pos.EntryPrice,
+			}
+		}
+	}
+	return nil
 }
 func (ftx *FTX) MakeOrder(order *util.Order) int64 {
 	type result struct {
@@ -179,19 +227,54 @@ func (ftx *FTX) MakeOrder(order *util.Order) int64 {
 		Ioc bool
 		PostOnly bool
 		ClientId string
+		// for conditional order
+		TriggerPrice float64
+		OrderPrice float64
+		TriggeredAt string
+		OrderType string
+		RetryUntilFilled bool
 	}
 	type res struct {
 		Success bool
 		Result result
 	}
-	url := host + orderAPI
-	orderStr := order.GetJSONString()
-	header := ftx.genAuthHeader("POST", orderAPI, orderStr)
+	var api string
+	if order.Type == "market" || order.Type == "limit" {
+		api = orderAPI
+	} else if order.Type == "stop" || order.Type == "trailingStop" || 
+			order.Type == "takeProfit" {
+		api = condOrderAPI
+	}
+	url := host + api
+	orderStr := util.GetJSONString(order.CreateMap())
+	fmt.Println(orderStr)
+	header := ftx.genAuthHeader("POST", api, orderStr)
 	var resObj res
-	ftx.restClient.Post(url, header, order.GetBuffer(), &resObj)
+	ftx.restClient.Post(url, header, 
+		util.GetJSONBuffer(order.CreateMap()), &resObj)
 	if !resObj.Success {
 		fmt.Println(resObj)
-		util.Error(ftx.tag, "Make Order Error")
+		util.Error(ftx.tag, "Make order error")
 	}
 	return resObj.Result.Id
+}
+func (ftx *FTX) CancelAllOrder(market string) {
+	type req struct {
+		Market string
+	}
+	reqBody := req{
+		Market: market,
+	}
+	type res struct {
+		Success bool
+		Result string
+	}
+	url := host + orderAPI
+	header := ftx.genAuthHeader("DELETE", orderAPI, util.GetJSONString(reqBody))
+	var resObj res
+	ftx.restClient.Delete(url, header, util.GetJSONBuffer(reqBody), &resObj)
+	if !resObj.Success {
+		fmt.Println(resObj)
+		util.Error(ftx.tag, "Cancel all order error")
+	}
 }
