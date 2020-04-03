@@ -62,7 +62,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		warmUpCandleNum: 40,
 		takeProfit: 200,
 		stopLoss: 100,
-		useTrailingStop: true,
+		useTrailingStop: false,
 		// data
 		mainCandle: nil,
 	}
@@ -135,16 +135,14 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 				Side: "close",
 				Reason: "take profit",
 			})
-			price := rt.position.OpenPrice + rt.takeProfit
-			rt.closePosition(price, "take profit")
+			rt.closePosition(rt.takeProfitPrice, "take profit")
 		} else if (candle.Low <= rt.stopLossPrice) {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
 				Reason: "stop loss",
 			})
-			price := rt.position.OpenPrice - rt.stopLoss
-			rt.closePosition(price, "stop loss")
+			rt.closePosition(rt.stopLossPrice, "stop loss")
 		}
 	} else if rt.position != nil && rt.position.Side == "short" {
 		if rt.useTrailingStop {
@@ -158,16 +156,14 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 				Side: "close",
 				Reason: "stop loss",
 			})
-			price := rt.position.OpenPrice + rt.stopLoss
-			rt.closePosition(price, "stop loss")
+			rt.closePosition(rt.stopLossPrice, "stop loss")
 		} else if (candle.Low <= rt.takeProfitPrice) {
 			rt.sendSignal(&util.Signal{ 
 				Market: rt.market, 
 				Side: "close",
 				Reason: "take profit",
 			})
-			price := rt.position.OpenPrice - rt.takeProfit
-			rt.closePosition(price, "take profit")
+			rt.closePosition(rt.takeProfitPrice, "take profit")
 		}
 	}
 	/*

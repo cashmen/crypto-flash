@@ -77,7 +77,6 @@ func main() {
 			sp.SubSignal(signalChan)
 			wg.Add(1)
 			go trader.Start(signalChan)
-			break
 		}
 		wg.Add(1)
 		go sp.Start()
