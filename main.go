@@ -15,7 +15,9 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-
+const version = "3.0.2-beta"
+const update = "1. Support multiple traders.\n" + 
+	"2. Implement stop, take profit and trailing stop."
 const tag = "Crypto Flash"
 // mode: trade, notify, backtest
 const mode = "trade"
@@ -35,8 +37,6 @@ type config struct {
 	Users []user
 	Line lineConfig
 	Telegram string
-	Version string
-	Update string
 }
 
 func loadConfig(fileName string) config {
@@ -52,8 +52,7 @@ func loadConfig(fileName string) config {
 func main() {
 	var wg sync.WaitGroup
 	config := loadConfig("config.json")
-	fmt.Printf("Crypto Flash v%s initialized. Update: \n%s\n", 
-		config.Version, config.Update)
+	fmt.Printf("Crypto Flash v%s initialized. Update: \n%s\n", version, update)
 	
 	var n *character.Notifier
 	if config.Notify && mode != "backtest" {
@@ -63,7 +62,7 @@ func main() {
 		go n.Listen()
 		n.Broadcast(tag, 
 			fmt.Sprintf("Crypto Flash v%s initialized. Update: \n%s", 
-			config.Version, config.Update))
+				version, update))
 	} else {
 		n = nil
 	}

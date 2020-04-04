@@ -30,6 +30,7 @@ type Trader struct {
 	wallet *util.Wallet
 	market string
 	position *util.Position
+	curPosition *util.Position
 	ignoreFirstSignal bool
 	initBalance float64
 	leverage float64
@@ -96,10 +97,10 @@ func (t *Trader) updateStatus() {
 	for {
 		t.wallet = t.ftx.GetWallet()
 		util.Success(t.tag, "successfully update balance", t.wallet.String())
-		t.position = t.ftx.GetPosition(t.market)
-		if t.position != nil {
+		t.curPosition = t.ftx.GetPosition(t.market)
+		if t.curPosition != nil {
 			util.Success(t.tag, "successfully update position", 
-				t.position.String())
+				t.curPosition.String())
 		} else {
 			util.Success(t.tag, "no current position")
 		}
@@ -107,29 +108,28 @@ func (t *Trader) updateStatus() {
 	}
 }
 func (t *Trader) closePosition(market string, price float64, reason string) {
-	t.position = t.ftx.GetPosition(market)
-	if t.position == nil {
-		return
+	t.curPosition = t.ftx.GetPosition(market)
+	if t.curPosition != nil {
+		action := ""
+		if t.curPosition.Side == "short" {
+			action = "buy"
+		} else if t.curPosition.Side == "long" {
+			action = "sell"
+		}
+		order := &util.Order{
+			Market: market,
+			Side: action,
+			Type: "market",
+			Size: t.curPosition.Size,
+			ReduceOnly: true,
+		}
+		t.ftx.MakeOrder(order)
 	}
-	action := ""
-	if t.position.Side == "short" {
-		action = "buy"
-	} else if t.position.Side == "long" {
-		action = "sell"
-	}
-	order := &util.Order{
-		Market: market,
-		Side: action,
-		Type: "market",
-		Size: t.position.Size,
-		ReduceOnly: true,
-	}
-	t.ftx.MakeOrder(order)
 	roi := t.position.Close(price)
 	t.notifyClosePosition(price, roi, reason)
 	logMsg := fmt.Sprintf("close %s @ %.2f due to %s, ROI: %.2f%%", 
 		t.position.Side, price, reason, roi * 100)
-	if roi > 0 { 
+	if roi > 0 {
 		util.Info(t.tag, util.Green(logMsg))
 	} else {
 		util.Info(t.tag, util.Red(logMsg))
