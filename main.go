@@ -20,8 +20,6 @@ const update = "1. Implement stop, take profit and trailing stop.\n" +
 	"2. Calculate win rate for strategy adjustment.\n" + 
 	"3. FTX supports candle query more than 5000"
 const tag = "Crypto Flash"
-// mode: trade, notify, backtest
-const mode = "notify"
 
 type user struct {
 	Name string
