@@ -34,6 +34,7 @@ type lineConfig struct {
 	Channel_Access_Token string
 }
 type config struct {
+	Mode string
 	Notify bool
 	Users []user
 	Line lineConfig
@@ -56,7 +57,7 @@ func main() {
 	fmt.Printf("Crypto Flash v%s initialized. Update: \n%s\n", version, update)
 	
 	var n *character.Notifier
-	if config.Notify && mode != "backtest" {
+	if config.Notify && config.Mode != "backtest" {
 		n = character.NewNotifier(config.Line.Channel_Secret, 
 			config.Line.Channel_Secret, config.Telegram)
 		wg.Add(1)
@@ -69,7 +70,7 @@ func main() {
 	}
 	ftx := exchange.NewFTX("", "", "")
 	sp := character.NewResTrend(ftx, n)
-	if mode == "trade" {
+	if config.Mode == "trade" {
 		for _, user := range config.Users {
 			ftx := exchange.NewFTX(user.Key, user.Secret, user.SubAccount)
 			trader := character.NewTrader(user.Name, ftx, n)
@@ -80,10 +81,10 @@ func main() {
 		}
 		wg.Add(1)
 		go sp.Start()
-	} else if mode == "notify" {
+	} else if config.Mode == "notify" {
 		wg.Add(1)
 		go sp.Start()
-	} else if mode == "backtest" {
+	} else if config.Mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
 		endTime := time.Now()
 		d := util.Duration{ Day: -20 }
