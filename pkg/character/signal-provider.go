@@ -23,6 +23,8 @@ type SignalProvider struct {
 	notifier *Notifier
 	signalChan chan<- *util.Signal
 	chans []chan<- *util.Signal
+	stopLossCount int
+	takeProfitCount int
 }
 
 func (sp *SignalProvider) notifyROI() {
@@ -30,12 +32,15 @@ func (sp *SignalProvider) notifyROI() {
 		return;
 	}
 	roi := util.CalcROI(sp.initBalance, sp.balance)
+	winRate := float64(sp.takeProfitCount) / 
+		float64(sp.takeProfitCount + sp.stopLossCount)
 	msg := "Report\n"
 	runTime := time.Now().Sub(sp.startTime)
 	d := util.FromTimeDuration(runTime)
 	msg += "Runtime: " + d.String() + "\n"
 	msg += fmt.Sprintf("Init Balance: %.2f\n", sp.initBalance)
 	msg += fmt.Sprintf("Balance: %.2f\n", sp.balance)
+	msg += fmt.Sprintf("Win Rate: %.2f%%\n", winRate * 100)
 	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
 	ar := util.CalcAnnualFromROI(roi, runTime.Seconds())
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
@@ -59,7 +64,7 @@ func (sp *SignalProvider) notifyOpenPosition(reason string) {
 		sp.position.Side, sp.position.OpenPrice, reason)
 	sp.notifier.Broadcast(sp.tag, msg)
 }
-func (sp *SignalProvider) closePosition(price float64, reason string) {
+func (sp *SignalProvider) closePosition(price float64, reason string) float64 {
 	roi := sp.position.Close(price)
 	sp.balance *= 1 + roi
 	logMsg := fmt.Sprintf("close %s @ %.2f due to %s, ROI: %.2f%%", 
@@ -71,6 +76,12 @@ func (sp *SignalProvider) closePosition(price float64, reason string) {
 	}
 	sp.notifyClosePosition(price, roi, reason)
 	sp.position = nil
+	if roi > 0 {
+		sp.takeProfitCount++
+	} else {
+		sp.stopLossCount++
+	}
+	return roi
 }
 func (sp *SignalProvider) openPosition(
 		side string, size, price float64, reason string) {

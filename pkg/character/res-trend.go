@@ -50,6 +50,8 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 			balance: 1000000,
 			notifier: notifier,
 			signalChan: nil,
+			takeProfitCount: 0,
+			stopLossCount: 0,
 		},
 		ftx: ftx,
 		// config
@@ -60,7 +62,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		mainRes: 14400, // 60 (for test), 3600 or 14400
 		period: 3,
 		warmUpCandleNum: 40,
-		takeProfit: 200,
+		takeProfit: 100,
 		stopLoss: 100,
 		useTrailingStop: false,
 		// data
@@ -70,9 +72,6 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 func (rt *ResTrend) Backtest(startTime, endTime int64) float64 {
 	candles := 
 		rt.ftx.GetHistoryCandles(rt.market, rt.res, startTime, endTime)
-	if len(candles) == 5000 {
-		util.Error(rt.tag, "Can't have more candles.")
-	}
 	rt.warmUp(startTime)
 	util.Info(rt.tag, "start backtesting")
 	for _, candle := range candles {
@@ -81,6 +80,9 @@ func (rt *ResTrend) Backtest(startTime, endTime int64) float64 {
 	roi := util.CalcROI(rt.initBalance, rt.balance)
 	util.Info(rt.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", rt.balance, roi * 100))
+	winRate := float64(rt.takeProfitCount) / 
+		float64(rt.takeProfitCount + rt.stopLossCount)
+	util.Info(rt.tag, fmt.Sprintf("win rate: %.2f%%", winRate * 100))
 	return roi
 }
 func (rt *ResTrend) genSignal(candle *util.Candle) {
@@ -253,6 +255,9 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 	roi := util.CalcROI(rt.initBalance, rt.balance)
 	util.Info(rt.tag, 
 		fmt.Sprintf("balance: %.2f, total ROI: %.2f%%", rt.balance, roi * 100))
+	winRate := float64(rt.takeProfitCount) / 
+		float64(rt.takeProfitCount + rt.stopLossCount)
+	util.Info(rt.tag, fmt.Sprintf("win rate: %.2f%%", winRate * 100))
 	rt.prevSupertrend = supertrend
 	rt.prevTrend = rt.trend
 }/*
@@ -306,6 +311,9 @@ func (rt *ResTrend) warmUp(from int64) {
 	rt.mainST = indicator.NewSupertrend(rt.mainMul, rt.period)
 	rt.mainST.Tag = "Main Supertrend"
 	candles := rt.getCandles(from, rt.res)
+	if len(candles) != rt.warmUpCandleNum {
+		util.Error(rt.tag, "Error on getting warmup candles")
+	}
 	for _, candle := range candles {
 		rt.prevSupertrend = rt.st.Update(candle)
 		rt.prevTrend = rt.trend
