@@ -85,15 +85,23 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 		Success bool
 		Result  []candleRes
 	}
-	url := host + marketAPI + fmt.Sprintf(
-		"/%s/candles?resolution=%d&start_time=%d&end_time=%d&limit=5000",
-		market, resolution, startTime, endTime)
-	var resObj historyRes
-	ftx.restClient.Get(url, nil, &resObj)
 	var candles []*util.Candle
-	for _, c := range resObj.Result {
-		candles = append(candles, util.NewCandle(
-			c.Open, c.High, c.Low, c.Close, c.Volume, c.StartTime))
+	maxReqInterval := int64(resolution * 5000)
+	for curStartTime := startTime; curStartTime < endTime; 
+			curStartTime += maxReqInterval {
+		curEndTime := curStartTime + maxReqInterval
+		if curEndTime > endTime {
+			curEndTime = endTime
+		}
+		url := host + marketAPI + fmt.Sprintf(
+			"/%s/candles?resolution=%d&start_time=%d&end_time=%d&limit=5000",
+			market, resolution, curStartTime, curEndTime)
+		var resObj historyRes
+		ftx.restClient.Get(url, nil, &resObj)
+		for _, c := range resObj.Result {
+			candles = append(candles, util.NewCandle(
+				c.Open, c.High, c.Low, c.Close, c.Volume, c.StartTime))
+		}
 	}
 	return candles
 }
