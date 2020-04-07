@@ -202,8 +202,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 		}
 	}*/
 	if (rt.position == nil || rt.position.Side == "long") && 
-			(rt.trend == "bear" && rt.prevTrend == "bull" && 
-			rt.mainTrend == "bear") {
+			(rt.trend == "bear" && rt.mainTrend == "bear") {
 		if rt.position != nil && rt.position.Side == "long" {
 			// close long position
 			// close price should be market price
@@ -227,8 +226,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 		})
 		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
-				(rt.trend == "bull" && rt.prevTrend == "bear" && 
-				rt.mainTrend == "bull") {
+				(rt.trend == "bull" && rt.mainTrend == "bull") {
 		if rt.position != nil && rt.position.Side == "short" {
 			// close short position
 			// close price should be market price

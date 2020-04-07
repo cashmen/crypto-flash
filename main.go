@@ -15,7 +15,7 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.0.2-beta"
+const version = "3.0.3-beta"
 const update = "1. Support multiple traders.\n" + 
 	"2. Implement stop, take profit and trailing stop."
 const tag = "Crypto Flash"
@@ -83,9 +83,9 @@ func main() {
 		wg.Add(1)
 		go sp.Start()
 	} else if mode == "backtest" {
-		//endTime, _ := time.Parse(time.RFC3339, "2020-03-26T05:00:00+00:00")
-		endTime := time.Now()
-		d := util.Duration{ Day: -30 }
+		endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
+		//endTime := time.Now()
+		d := util.Duration{ Day: -40 }
 		startTime := endTime.Add(d.GetTimeDuration())
 		roi := sp.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
