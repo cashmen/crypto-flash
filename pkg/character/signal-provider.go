@@ -71,16 +71,13 @@ func (sp *SignalProvider) closePosition(price float64, reason string) float64 {
 		sp.position.Side, price, reason, roi * 100)
 	if roi > 0 { 
 		util.Info(sp.tag, util.Green(logMsg))
+		sp.takeProfitCount++
 	} else {
 		util.Info(sp.tag, util.Red(logMsg))
+		sp.stopLossCount++
 	}
 	sp.notifyClosePosition(price, roi, reason)
 	sp.position = nil
-	if roi > 0 {
-		sp.takeProfitCount++
-	} else {
-		sp.stopLossCount++
-	}
 	return roi
 }
 func (sp *SignalProvider) openPosition(
