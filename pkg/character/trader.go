@@ -35,6 +35,8 @@ type Trader struct {
 	initBalance float64
 	leverage float64
 	updatePeriod time.Duration
+	stopLoss float64
+	takeProfit float64
 }
 
 // NewTrader creates a trader instance
@@ -125,6 +127,11 @@ func (t *Trader) closePosition(market string, price float64, reason string) {
 		}
 		t.ftx.MakeOrder(order)
 	}
+	if reason == "take profit" {
+		price = t.takeProfit
+	} else if reason == "stop loss" {
+		price = t.stopLoss
+	}
 	roi := t.position.Close(price)
 	t.notifyClosePosition(price, roi, reason)
 	logMsg := fmt.Sprintf("close %s @ %.2f due to %s, ROI: %.2f%%", 
@@ -174,6 +181,7 @@ func (t *Trader) openPosition(signal *util.Signal, size, price float64) {
 			//OrderPrice: 6500,
 		}
 		t.ftx.MakeOrder(takeProfitOrder)
+		t.takeProfit = signal.TakeProfit
 	}
 	if signal.StopLoss > 0 {
 		var order *util.Order
@@ -197,6 +205,7 @@ func (t *Trader) openPosition(signal *util.Signal, size, price float64) {
 				RetryUntilFilled: true,
 				TriggerPrice: signal.StopLoss,
 			}
+			t.stopLoss = signal.StopLoss
 		}
 		t.ftx.MakeOrder(order)
 	}

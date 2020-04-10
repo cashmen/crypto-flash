@@ -15,7 +15,7 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.2.3-beta"
+const version = "3.2.4-beta"
 const update = "1. Implement stop, take profit and trailing stop.\n" + 
 	"2. Calculate win rate for strategy adjustment.\n" + 
 	"3. FTX supports candle query more than 5000"
