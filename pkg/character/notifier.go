@@ -38,7 +38,7 @@ func NewNotifier(secret, accessToken, tgToken string) *Notifier {
 		tgClient: tgc,
 		users: make(map[string]int64),
 	}
-	n.users["kuroiro_sagishi"] = 441247007
+	n.users["nicholas_chao"] = 441247007
 	n.users["liverpool1026"] = 1023854566
 	n.users["twoblade"] = 928075336
 	return n
