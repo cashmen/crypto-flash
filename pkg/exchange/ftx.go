@@ -255,7 +255,6 @@ func (ftx *FTX) MakeOrder(order *util.Order) int64 {
 	}
 	url := host + api
 	orderStr := util.GetJSONString(order.CreateMap())
-	fmt.Println(orderStr)
 	header := ftx.genAuthHeader("POST", api, orderStr)
 	var resObj res
 	ftx.restClient.Post(url, header, 
