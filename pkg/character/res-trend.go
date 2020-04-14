@@ -2,7 +2,6 @@
 // Resolution Trend is a signal provider utilize two supertrends from different 
 // resolution.
 // TODO:
-// 1. trailing stop
 */
 package character
 
