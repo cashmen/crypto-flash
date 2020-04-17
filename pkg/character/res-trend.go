@@ -35,6 +35,7 @@ type ResTrend struct {
 	trend string
 	prevTrend string
 	mainTrend string
+	prevMainTrend string
 	mainCandle *util.Candle
 	stopLossPrice float64
 	takeProfitPrice float64
@@ -259,6 +260,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 	util.Info(rt.tag, fmt.Sprintf("win rate: %.2f%%", winRate * 100))
 	rt.prevSupertrend = supertrend
 	rt.prevTrend = rt.trend
+	rt.prevMainTrend = rt.mainTrend
 }/*
 func (rt *ResTrend) AdjustParams() {
 	ftx := exchange.NewFTX("", "", "")
@@ -336,6 +338,7 @@ func (rt *ResTrend) warmUp(from int64) {
 	candles = rt.getCandles(from, rt.mainRes)
 	for _, candle := range candles {
 		mainSupertrend := rt.mainST.Update(candle)
+		rt.prevMainTrend = rt.mainTrend
 		if candle.Close > mainSupertrend {
 			rt.mainTrend = "bull"
 		} else if candle.Close < mainSupertrend {
