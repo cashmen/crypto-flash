@@ -2,6 +2,7 @@
 // TODO:
 // 1. tests
 // 2. consider having exchange interface, signal provider interface
+// 3. auto-backtesting and parameter optimization with report to notifier
 */
 package main
 
@@ -15,10 +16,9 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.2.4-beta"
-const update = "1. Implement stop, take profit and trailing stop.\n" + 
-	"2. Calculate win rate for strategy adjustment.\n" + 
-	"3. FTX supports candle query more than 5000"
+const version = "3.3.0-beta"
+const update = "1. Update strategy (improved from trading view).\n" + 
+	"2. Backtesting with chart.\n"
 const tag = "Crypto Flash"
 
 type user struct {
@@ -85,7 +85,7 @@ func main() {
 	} else if config.Mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
 		endTime := time.Now()
-		d := util.Duration{ Day: -50 }
+		d := util.Duration{ Day: -100 }
 		startTime := endTime.Add(d.GetTimeDuration())
 		roi := sp.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
