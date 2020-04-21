@@ -58,7 +58,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		market: "BTC-PERP",
 		mul: 1,
 		res: 900, // 15 (for test), 60, 300 or 900
-		mainMul: 1,
+		mainMul: 2,
 		mainRes: 14400, // 60 (for test), 3600 or 14400
 		period: 3,
 		warmUpCandleNum: 40,
@@ -83,6 +83,7 @@ func (rt *ResTrend) Backtest(startTime, endTime int64) float64 {
 	winRate := float64(rt.takeProfitCount) / 
 		float64(rt.takeProfitCount + rt.stopLossCount)
 	util.Info(rt.tag, fmt.Sprintf("win rate: %.2f%%", winRate * 100))
+	rt.showChart()
 	return roi
 }
 func (rt *ResTrend) genSignal(candle *util.Candle) {
@@ -204,7 +205,8 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 		}
 	}*/
 	if (rt.position == nil || rt.position.Side == "long") && 
-			(rt.trend == "bear" && rt.mainTrend == "bear") {
+			((rt.prevTrend == "bull" && rt.trend == "bear" && rt.mainTrend == "bear") ||
+			(rt.prevMainTrend == "bull" && rt.mainTrend == "bear")) {
 		if rt.position != nil && rt.position.Side == "long" {
 			// close long position
 			// close price should be market price
@@ -228,7 +230,8 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 		})
 		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
-				(rt.trend == "bull" && rt.mainTrend == "bull") {
+			((rt.prevTrend == "bear" && rt.trend == "bull" && rt.mainTrend == "bull") ||
+			(rt.prevMainTrend == "bear" && rt.mainTrend == "bull")) {
 		if rt.position != nil && rt.position.Side == "short" {
 			// close short position
 			// close price should be market price
