@@ -18,7 +18,7 @@ import (
 )
 const version = "3.3.0-beta"
 const update = "1. Update strategy (improved from trading view).\n" + 
-	"2. Backtesting with chart.\n"
+	"2. Backtesting with chart."
 const tag = "Crypto Flash"
 
 type user struct {
