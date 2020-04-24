@@ -122,9 +122,17 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 	}
 	util.Info(rt.tag, 
 		fmt.Sprintf("st: %f, mainST: %f", supertrend, mainSupertrend))
-	util.Info(rt.tag, "prevTrend:", rt.prevTrend)
-	util.Info(rt.tag, "trend:", rt.trend)
-	util.Info(rt.tag, "mainTrend:", rt.mainTrend)
+	color := func(trend string) string {
+		if trend == "bull" {
+			return util.Green(trend)
+		} else {
+			return util.Red(trend)
+		}
+	}
+	util.Info(rt.tag, "prevTrend:", color(rt.prevTrend))
+	util.Info(rt.tag, "trend:", color(rt.trend))
+	util.Info(rt.tag, "mainTrend:", color(rt.mainTrend))
+	util.Info(rt.tag, "prevMainTrend:", color(rt.prevMainTrend))
 	// const take profit or stop loss
 	if rt.position != nil && rt.position.Side == "long" {
 		if rt.useTrailingStop {
