@@ -170,6 +170,7 @@ func (t *Trader) openPosition(signal *util.Signal, size, price float64) {
 		util.Info(t.tag, util.Red(logMsg))
 	}
 	if signal.TakeProfit > 0 {
+		/*
 		takeProfitOrder := &util.Order{
 			Market: signal.Market,
 			Side: exitAction,
@@ -179,6 +180,14 @@ func (t *Trader) openPosition(signal *util.Signal, size, price float64) {
 			RetryUntilFilled: true,
 			TriggerPrice: signal.TakeProfit,
 			//OrderPrice: 6500,
+		}*/
+		takeProfitOrder := &util.Order{
+			Market: signal.Market,
+			Side: exitAction,
+			Type: "limit",
+			Size: size,
+			ReduceOnly: true,
+			Price: signal.TakeProfit,
 		}
 		t.ftx.MakeOrder(takeProfitOrder)
 		t.takeProfit = signal.TakeProfit
@@ -204,6 +213,7 @@ func (t *Trader) openPosition(signal *util.Signal, size, price float64) {
 				ReduceOnly: true,
 				RetryUntilFilled: true,
 				TriggerPrice: signal.StopLoss,
+				//OrderPrice: signal.StopLoss,
 			}
 			t.stopLoss = signal.StopLoss
 		}

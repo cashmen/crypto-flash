@@ -16,9 +16,10 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.3.0-beta"
+const version = "3.3.1-beta"
 const update = "1. Update strategy (improved from trading view).\n" + 
-	"2. Backtesting with chart."
+	"2. Backtesting with chart.\n" +
+	"3. Change take profit to limit order."
 const tag = "Crypto Flash"
 
 type user struct {
