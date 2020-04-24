@@ -4,7 +4,8 @@
             "name": "",
             "key": "",
             "secret": "",
-            "subAccount": ""
+            "subAccount": "",
+            "telegram_id": 0
         }
     ],
     "mode": "backtest",

@@ -27,6 +27,7 @@ type user struct {
 	Key string
 	Secret string
 	SubAccount string
+	Telegram_Id int64
 }
 type lineConfig struct {
 	Channel_Secret string
@@ -59,6 +60,9 @@ func main() {
 	if config.Notify && config.Mode != "backtest" {
 		n = character.NewNotifier(config.Line.Channel_Secret, 
 			config.Line.Channel_Secret, config.Telegram)
+		for _, user := range config.Users {
+			n.AddUser(user.Name, user.Telegram_Id)
+		}
 		wg.Add(1)
 		go n.Listen()
 		n.Broadcast(tag, 
@@ -71,6 +75,9 @@ func main() {
 	sp := character.NewResTrend(ftx, n)
 	if config.Mode == "trade" {
 		for _, user := range config.Users {
+			if user.Key == "" || user.Secret == "" {
+				continue
+			}
 			ftx := exchange.NewFTX(user.Key, user.Secret, user.SubAccount)
 			trader := character.NewTrader(user.Name, ftx, n)
 			signalChan := make(chan *util.Signal)

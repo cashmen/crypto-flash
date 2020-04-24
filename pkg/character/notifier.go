@@ -38,12 +38,11 @@ func NewNotifier(secret, accessToken, tgToken string) *Notifier {
 		tgClient: tgc,
 		users: make(map[string]int64),
 	}
-	n.users["nicholas_chao"] = 441247007
-	n.users["liverpool1026"] = 1023854566
-	n.users["twoblade"] = 928075336
 	return n
 }
-
+func (n *Notifier) AddUser(name string, roomID int64) {
+	n.users[name] = roomID
+}
 func (n *Notifier) lineBroadcast(message string) {
 	var messages []linebot.SendingMessage
 	messages = append(messages, linebot.NewTextMessage(message))
@@ -94,7 +93,7 @@ func (n *Notifier) Listen() {
 				user := recvMsg.From.UserName
 				chatID := recvMsg.Chat.ID
 				msg.Text = "Hi, " + user + " : )"
-				n.users[user] = chatID
+				n.AddUser(user, chatID)
 				util.Success(n.tag, "register", user, util.PI64(chatID))
 			case "status":
 				msg.Text = "I'm ok."
