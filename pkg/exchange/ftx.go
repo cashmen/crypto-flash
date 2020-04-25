@@ -24,6 +24,8 @@ const (
 	orderAPI string = "/api/orders"
 	condOrderAPI string = "/api/conditional_orders"
 	positionAPI string = "/api/positions"
+	futureAPI string = "/api/futures"
+	fundingRateAPI string = "/api/funding_rates"
 )
 
 type FTX struct {
@@ -61,7 +63,7 @@ func (ftx *FTX) GetOrderbook(market string, depth int) *util.Orderbook {
 	url := host + marketAPI + 
 		fmt.Sprintf("/%s/orderbook?depth=%d", market, depth)
 	var resObj res
-	ftx.restClient.Get(url, nil, &resObj)
+	ftx.restClient.Get(url, nil, nil, &resObj)
 	orderbook := &util.Orderbook{}
 	for _, row := range resObj.Result.Asks {
 		orderbook.Add("ask", row[0], row[1])
@@ -97,7 +99,7 @@ func (ftx *FTX) GetHistoryCandles(market string, resolution int,
 			"/%s/candles?resolution=%d&start_time=%d&end_time=%d&limit=5000",
 			market, resolution, curStartTime, curEndTime)
 		var resObj historyRes
-		ftx.restClient.Get(url, nil, &resObj)
+		ftx.restClient.Get(url, nil, nil, &resObj)
 		for _, c := range resObj.Result {
 			candles = append(candles, util.NewCandle(
 				c.Open, c.High, c.Low, c.Close, c.Volume, c.StartTime))
@@ -164,7 +166,7 @@ func (ftx *FTX) GetWallet() *util.Wallet {
 	url := host + walletAPI
 	header := ftx.genAuthHeader("GET", walletAPI, "")
 	var resObj res
-	ftx.restClient.Get(url, header, &resObj)
+	ftx.restClient.Get(url, header, nil, &resObj)
 	wallet := util.NewWallet()
 	for _, coin := range resObj.Result {
 		wallet.Increase(coin.Coin, coin.Total)
@@ -195,7 +197,7 @@ func (ftx *FTX) GetPosition(market string) *util.Position {
 	url := host + positionAPI
 	header := ftx.genAuthHeader("GET", positionAPI, "")
 	var resObj res
-	ftx.restClient.Get(url, header, &resObj)
+	ftx.restClient.Get(url, header, nil, &resObj)
 	if !resObj.Success {
 		fmt.Println(resObj)
 		util.Error(ftx.tag, "Cancel all order error")
@@ -284,4 +286,72 @@ func (ftx *FTX) CancelAllOrder(market string) {
 		fmt.Println(resObj)
 		util.Error(ftx.tag, "Cancel all order error")
 	}
+}
+func (ftx *FTX) GetFundingRates(startTime, endTime int64, 
+		future string) []float64 {
+	type result struct {
+		Future string
+		Rate float64
+		Time string
+	}
+	type res struct {
+		Success bool
+		Result []result
+	}
+	url := host + fundingRateAPI
+	url += fmt.Sprintf("?start_time=%d&end_time=%d&future=%s", 
+		startTime, endTime, future)
+	req := make(map[string]interface{})
+	req["start_time"] = startTime
+	req["end_time"] = endTime
+	req["future"] = future
+	var resObj res
+	ftx.restClient.Get(url, nil, nil, &resObj)
+	if !resObj.Success {
+		fmt.Println(resObj)
+		util.Error(ftx.tag, "Get funding rates error")
+	}
+	var rates []float64
+	for _, result := range resObj.Result {
+		fmt.Println(result)
+		rates = append(rates, result.Rate)
+	}
+	return rates
+}
+type futureResult struct {
+	Ask float64
+	Bid float64
+	Index float64
+}
+func (ftx *FTX) GetFuture(future string) futureResult {
+	type res struct {
+		Success bool
+		Result futureResult
+	}
+	url := host + futureAPI + "/" + future
+	var resObj res
+	ftx.restClient.Get(url, nil, nil, &resObj)
+	if !resObj.Success {
+		fmt.Println(resObj)
+		util.Error(ftx.tag, "Get future error")
+	}
+	return resObj.Result
+}
+type futureStatsResult struct {
+	NextFundingRate float64
+	NextFundingTime string
+}
+func (ftx *FTX) GetFutureStats(future string) futureStatsResult {
+	type res struct {
+		Success bool
+		Result futureStatsResult
+	}
+	url := host + futureAPI + "/" + future + "/stats"
+	var resObj res
+	ftx.restClient.Get(url, nil, nil, &resObj)
+	if !resObj.Success {
+		fmt.Println(resObj)
+		util.Error(ftx.tag, "Get future stats error")
+	}
+	return resObj.Result
 }

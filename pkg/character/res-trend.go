@@ -1,5 +1,5 @@
 /* 
-// Resolution Trend is a signal provider utilize two supertrends from different 
+// Resolution Trend is a signal provider utilizes two supertrends from different 
 // resolution.
 // TODO:
 */

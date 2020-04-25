@@ -1,8 +1,9 @@
 /*
 // TODO:
-// 1. tests
+// 1. tests and DB
 // 2. consider having exchange interface, signal provider interface
 // 3. auto-backtesting and parameter optimization with report to notifier
+// 4. funding rate arbitrage
 */
 package main
 
@@ -72,7 +73,7 @@ func main() {
 		n = nil
 	}
 	ftx := exchange.NewFTX("", "", "")
-	sp := character.NewResTrend(ftx, n)
+	sp := character.NewFRArb(ftx, n)
 	if config.Mode == "trade" {
 		for _, user := range config.Users {
 			if user.Key == "" || user.Secret == "" {
@@ -93,7 +94,7 @@ func main() {
 	} else if config.Mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
 		endTime := time.Now()
-		d := util.Duration{ Day: -100 }
+		d := util.Duration{ Day: -10 }
 		startTime := endTime.Add(d.GetTimeDuration())
 		roi := sp.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
