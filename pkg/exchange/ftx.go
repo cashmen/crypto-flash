@@ -313,7 +313,6 @@ func (ftx *FTX) GetFundingRates(startTime, endTime int64,
 	}
 	var rates []float64
 	for _, result := range resObj.Result {
-		fmt.Println(result)
 		rates = append(rates, result.Rate)
 	}
 	return rates

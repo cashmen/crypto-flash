@@ -17,10 +17,8 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.3.1-beta"
-const update = "1. Update strategy (improved from trading view).\n" + 
-	"2. Backtesting with chart.\n" +
-	"3. Change take profit to limit order."
+const version = "3.4.0-beta"
+const update = "1. Add funding rate arbitrage provider for simulation test"
 const tag = "Crypto Flash"
 
 type user struct {
@@ -73,7 +71,7 @@ func main() {
 		n = nil
 	}
 	ftx := exchange.NewFTX("", "", "")
-	sp := character.NewFRArb(ftx, n)
+	sp := character.NewResTrend(ftx, n)
 	if config.Mode == "trade" {
 		for _, user := range config.Users {
 			if user.Key == "" || user.Secret == "" {
@@ -100,5 +98,10 @@ func main() {
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
 		fmt.Printf("Annual: %.2f%%", annual * 100)
 	}
+	// simulation of funding rate arbitrage
+	fra := character.NewFRArb(ftx, n)
+	go fra.Start()
+	wg.Add(1)
+
 	wg.Wait()
 }
