@@ -101,7 +101,7 @@ func (fra *FRArb) genSignal(future *future) {
 	future.consCount = 1
 	future.estApr = 1 + math.Abs(fundingRates[0])
 	for i := 1; i < len(future.fundingRates); i++ {
-		if fundingRates[i] * fundingRates[0] < 0 {
+		if fundingRates[i] * fundingRates[0] <= 0 {
 			break
 		}
 		future.estApr *= 1 + math.Abs(fundingRates[i])
