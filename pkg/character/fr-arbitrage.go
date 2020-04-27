@@ -120,10 +120,10 @@ func (fra *FRArb) genSignal(future *future) {
 			}
 			if fundingRates[0] > 0 {
 				// TODO: long pays short, short perp, long quater
-				future.size = -1
+				future.size = -100
 			} else {
 				// TODO: short pays long, long perp, short quater
-				future.size = 1
+				future.size = 100
 			}
 		}
 	} else {
