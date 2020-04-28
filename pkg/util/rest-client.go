@@ -23,7 +23,7 @@ func (rc *RestClient) do(req *http.Request, v interface{}) {
 	defer res.Body.Close()
 	err = json.NewDecoder(res.Body).Decode(v)
 	if err != nil {
-		Error(tag, err.Error())
+		Error(rc.tag, err.Error())
 	}
 }
 func (rc *RestClient) Get(url string, header *http.Header, body io.Reader,
