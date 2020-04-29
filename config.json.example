@@ -1,11 +1,12 @@
 {
-    "users": [
+    "bots": [
         {
-            "name": "",
+            "owner": "",
             "key": "",
             "secret": "",
             "subAccount": "",
-            "telegram_id": 0
+            "telegram_id": 0,
+            "strategy": ""
         }
     ],
     "mode": "backtest",

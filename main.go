@@ -21,12 +21,13 @@ const version = "3.4.0-beta"
 const update = "1. Add funding rate arbitrage provider for simulation test"
 const tag = "Crypto Flash"
 
-type user struct {
-	Name string
+type bot struct {
+	Owner string
 	Key string
 	Secret string
 	SubAccount string
 	Telegram_Id int64
+	Strategy string
 }
 type lineConfig struct {
 	Channel_Secret string
@@ -35,7 +36,7 @@ type lineConfig struct {
 type config struct {
 	Mode string
 	Notify bool
-	Users []user
+	Bots []bot
 	Line lineConfig
 	Telegram string
 }
@@ -59,8 +60,8 @@ func main() {
 	if config.Notify && config.Mode != "backtest" {
 		n = character.NewNotifier(config.Line.Channel_Secret, 
 			config.Line.Channel_Secret, config.Telegram)
-		for _, user := range config.Users {
-			n.AddUser(user.Name, user.Telegram_Id)
+		for _, bot := range config.Bots {
+			n.AddUser(bot.Owner, bot.Telegram_Id)
 		}
 		wg.Add(1)
 		go n.Listen()
@@ -73,12 +74,12 @@ func main() {
 	ftx := exchange.NewFTX("", "", "")
 	sp := character.NewResTrend(ftx, n)
 	if config.Mode == "trade" {
-		for _, user := range config.Users {
-			if user.Key == "" || user.Secret == "" {
+		for _, bot := range config.Bots {
+			if bot.Key == "" || bot.Secret == "" {
 				continue
 			}
-			ftx := exchange.NewFTX(user.Key, user.Secret, user.SubAccount)
-			trader := character.NewTrader(user.Name, ftx, n)
+			ftx := exchange.NewFTX(bot.Key, bot.Secret, bot.SubAccount)
+			trader := character.NewTrader(bot.Owner, ftx, n)
 			signalChan := make(chan *util.Signal)
 			sp.SubSignal(signalChan)
 			wg.Add(1)
@@ -92,7 +93,7 @@ func main() {
 	} else if config.Mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
 		endTime := time.Now()
-		d := util.Duration{ Day: -10 }
+		d := util.Duration{ Day: -60 }
 		startTime := endTime.Add(d.GetTimeDuration())
 		roi := sp.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())

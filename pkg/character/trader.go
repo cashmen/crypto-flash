@@ -23,7 +23,7 @@ import (
 // Trader represent a trader in crypto flash
 type Trader struct {
 	tag string
-	name string
+	owner string
 	startTime time.Time
 	ftx *exchange.FTX
 	notifier *Notifier
@@ -40,12 +40,12 @@ type Trader struct {
 }
 
 // NewTrader creates a trader instance
-func NewTrader(name string, ftx *exchange.FTX, notifier *Notifier) *Trader {
+func NewTrader(owner string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 	w := ftx.GetWallet()
-	util.Success("Trader-" + name, "successfully get balance", w.String())
+	util.Success("Trader-" + owner, "successfully get balance", w.String())
 	t := &Trader{
-		tag: "Trader-" + name,
-		name: name,
+		tag: "Trader-" + owner,
+		owner: owner,
 		ftx: ftx,
 		notifier: notifier,
 		wallet: w,
@@ -75,7 +75,7 @@ func (t *Trader) notifyROI() {
 	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
 	ar := roi * (86400 * 365) / runTime.Seconds()
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
-	t.notifier.Send(t.tag, t.name, msg)
+	t.notifier.Send(t.tag, t.owner, msg)
 }
 func (t *Trader) notifyClosePosition(price, roi float64, reason string) {
 	if t.notifier == nil {
@@ -84,7 +84,7 @@ func (t *Trader) notifyClosePosition(price, roi float64, reason string) {
 	msg := fmt.Sprintf("close %s @ %.2f due to %s\n", 
 		t.position.Side, price, reason)
 	msg += fmt.Sprintf("ROI: %.2f%%", roi * 100)
-	t.notifier.Send(t.tag, t.name, msg)
+	t.notifier.Send(t.tag, t.owner, msg)
 	t.notifyROI()
 }
 func (t *Trader) notifyOpenPosition(reason string) {
@@ -93,7 +93,7 @@ func (t *Trader) notifyOpenPosition(reason string) {
 	}
 	msg := fmt.Sprintf("start %s @ %.2f due to %s", 
 		t.position.Side, t.position.OpenPrice, reason)
-	t.notifier.Send(t.tag, t.name, msg)
+	t.notifier.Send(t.tag, t.owner, msg)
 }
 func (t *Trader) updateStatus() {
 	for {
