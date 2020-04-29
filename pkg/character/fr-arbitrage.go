@@ -206,6 +206,7 @@ func (fra *FRArb) Start() {
 				fra.genSignal(future)
 			}
 			names := fra.sortApr()
+			util.Info(fra.tag, "estApr Rank:")
 			for _, name := range names {
 				future := fra.futures[name]
 				fmt.Printf("future: %s, estApr: %.2f%%, consCount: %d\n", 
