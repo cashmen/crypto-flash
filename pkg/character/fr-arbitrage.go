@@ -175,6 +175,7 @@ func (fra *FRArb) sendReport() {
 		msg += fmt.Sprintf("size: %f\n", future.size)
 		msg += fmt.Sprintf("total profit: %f\n\n", future.totalProfit)
 	}
+	fmt.Println(msg)
 	fra.notifier.Broadcast(fra.tag, msg)
 }
 func (fra *FRArb) Start() {
@@ -213,8 +214,9 @@ func (fra *FRArb) Start() {
 				name, future.estApr * 100, future.consCount)
 			}
 		}
-		// one day just passed, generate one day report
-		if now % (24 * 60 * 60) == 0 {
+		// six hour just passed, generate report
+		if now % (6 * 60 * 60) == 0 {
+			fmt.Println(now)
 			fra.sendReport()
 		}	
 		timeToNextCycle := 
