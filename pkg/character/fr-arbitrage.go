@@ -166,6 +166,7 @@ func (fra *FRArb) sendReport() {
 	d := util.FromTimeDuration(runTime)
 	msg += "Runtime: " + d.String() + "\n\n"
 	names := fra.sortApr()
+	totalProfit := 0.0
 	for _, name := range names {
 		future := fra.futures[name]
 		msg += "future: " + future.name + "\n"
@@ -173,8 +174,15 @@ func (fra *FRArb) sendReport() {
 		msg += fmt.Sprintf("consCount: %d\n", future.consCount)
 		msg += fmt.Sprintf("next funding rate: %f\n", future.fundingRates[0])
 		msg += fmt.Sprintf("size: %f\n", future.size)
-		msg += fmt.Sprintf("total profit: %f\n\n", future.totalProfit)
+		msg += fmt.Sprintf("future profit: %f\n\n", future.totalProfit)
+		totalProfit += future.totalProfit
 	}
+	msg += fmt.Sprintf("Total Profit: %.2f\n", totalProfit)
+	balance := fra.initBalance + totalProfit
+	roi := util.CalcROI(fra.initBalance, balance)
+	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
+	ar := util.CalcAnnualFromROI(roi, runTime.Seconds())
+	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
 	fra.notifier.Broadcast(fra.tag, msg)
 }
 func (fra *FRArb) Start() {
