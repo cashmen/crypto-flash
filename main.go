@@ -17,8 +17,9 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.4.0-beta"
-const update = "1. Add funding rate arbitrage provider for simulation test"
+const version = "3.4.1-beta"
+const update = "1. Add funding rate arbitrage provider for simulation test.\n" +
+	"2. Funding pool logic test."
 const tag = "Crypto Flash"
 
 type bot struct {
@@ -72,7 +73,8 @@ func main() {
 		n = nil
 	}
 	ftx := exchange.NewFTX("", "", "")
-	sp := character.NewResTrend(ftx, n)
+	rs := character.NewResTrend(ftx, n)
+	fra := character.NewFRArb(ftx, n)
 	if config.Mode == "trade" {
 		for _, bot := range config.Bots {
 			if bot.Key == "" || bot.Secret == "" {
@@ -81,28 +83,25 @@ func main() {
 			ftx := exchange.NewFTX(bot.Key, bot.Secret, bot.SubAccount)
 			trader := character.NewTrader(bot.Owner, ftx, n)
 			signalChan := make(chan *util.Signal)
-			sp.SubSignal(signalChan)
+			rs.SubSignal(signalChan)
 			wg.Add(1)
 			go trader.Start(signalChan)
 		}
-		wg.Add(1)
-		go sp.Start()
+		wg.Add(2)
+		go rs.Start()
+		go fra.Start()
 	} else if config.Mode == "notify" {
-		wg.Add(1)
-		go sp.Start()
+		wg.Add(2)
+		go rs.Start()
+		go fra.Start()
 	} else if config.Mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
 		endTime := time.Now()
 		d := util.Duration{ Day: -60 }
 		startTime := endTime.Add(d.GetTimeDuration())
-		roi := sp.Backtest(startTime.Unix(), endTime.Unix())
+		roi := rs.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
 		fmt.Printf("Annual: %.2f%%", annual * 100)
 	}
-	// simulation of funding rate arbitrage
-	fra := character.NewFRArb(ftx, n)
-	go fra.Start()
-	wg.Add(1)
-
 	wg.Wait()
 }

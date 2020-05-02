@@ -32,8 +32,12 @@ type FRArb struct {
 	longTime int
 	aprThreshold float64
 	prevRateDays int64
+	minAmount float64
 	// data
+	freeBalance float64
 	futures map[string]*future
+	startFutures []*future
+	stopFutures []*future
 }
 func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 	return &FRArb{
@@ -68,8 +72,11 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 		longTime: 10,
 		aprThreshold: 0.3,
 		prevRateDays: 7,
+		// minimum USD amount to start a pair (perp + quarter)
+		minAmount: 10,
 		// data
 		futures: make(map[string]*future),
+		freeBalance: 1000000,
 	}
 }
 func (fra *FRArb) getFutureName(future string, isPerp bool) string {
@@ -113,29 +120,22 @@ func (fra *FRArb) genSignal(future *future) {
 		fmt.Sprintf("estApr: %.2f%%", future.estApr * 100))
 	if future.consCount >= fra.longTime && future.estApr >= fra.aprThreshold {
 		if future.size == 0 {
-			util.Info(fra.tag, "start earning on " + future.name)
+			util.Info(fra.tag, "profitable: " + future.name)
 			if fra.notifier != nil {
 				fra.notifier.Broadcast(fra.tag, 
-					"start earning on " + future.name + "\n" +
+					"profitable: " + future.name + "\n" +
 					fmt.Sprintf("estApr: %.2f%%", future.estApr * 100))
 			}
-			if fundingRates[0] > 0 {
-				// TODO: long pays short, short perp, long quater
-				future.size = -100
-			} else {
-				// TODO: short pays long, long perp, short quater
-				future.size = 100
-			}
+			fra.startFutures = append(fra.startFutures, future)
 		}
 	} else {
-		if future.size > 0 {
-			util.Info(fra.tag, "stop earning on " + future.name)
+		if future.size != 0 {
+			util.Info(fra.tag, "not profitable: " + future.name)
 			if fra.notifier != nil {
 				fra.notifier.Broadcast(fra.tag, 
-					"stop earning on " + future.name)
+					"not profitable: " + future.name)
 			}
-			// TODO: close both positions on perp and quater
-			future.size = 0
+			fra.stopFutures = append(fra.stopFutures, future)
 		}
 	}
 }
@@ -205,6 +205,45 @@ func (fra *FRArb) Start() {
 				future.totalProfit += future.size * future.fundingRates[0] * -1
 				fra.genSignal(future)
 			}
+			for _, future := range fra.stopFutures {
+				// TODO: close both positions on perp and quater
+				util.Info(fra.tag, 
+					fmt.Sprintf("stop earning on %s, size %f",
+						future.name, future.size))
+				if fra.notifier != nil {
+					fra.notifier.Broadcast(fra.tag, 
+						fmt.Sprintf("stop earning on %s, size %f",
+							future.name, future.size))
+				}
+				fra.freeBalance += future.size
+				future.size = 0
+			}
+			util.Info(fra.tag, fmt.Sprintf("free balance: %f, count: %d", 
+				fra.freeBalance, len(fra.startFutures)))
+			count := float64(len(fra.startFutures))
+			if fra.freeBalance >= fra.minAmount * count {
+				size := fra.freeBalance / (count * 2)
+				for _, future := range fra.startFutures {
+					if future.fundingRates[0] > 0 {
+						// TODO: long pays short, short perp, long quarter
+						future.size = -size
+					} else {
+						// TODO: short pays long, long perp, short quarter
+						future.size = size
+					}
+					util.Info(fra.tag, 
+						fmt.Sprintf("start earning on %s, size %f",
+							future.name, future.size))
+					if fra.notifier != nil {
+						fra.notifier.Broadcast(fra.tag, 
+							fmt.Sprintf("start earning on %s, size %f",
+								future.name, future.size))
+					}
+				}
+				fra.freeBalance = 0
+			}
+			fra.startFutures = fra.startFutures[:0]
+			fra.stopFutures = fra.stopFutures[:0]
 			names := fra.sortApr()
 			util.Info(fra.tag, "estApr Rank:")
 			for _, name := range names {
