@@ -229,7 +229,7 @@ func (fra *FRArb) Start() {
 			util.Info(fra.tag, fmt.Sprintf("free balance: %f, count: %d", 
 				fra.freeBalance, len(fra.startFutures)))
 			count := float64(len(fra.startFutures))
-			if fra.freeBalance >= fra.minAmount * count {
+			if count > 0 && fra.freeBalance >= fra.minAmount * count {
 				size := fra.freeBalance / (count * 2)
 				for _, future := range fra.startFutures {
 					if future.fundingRates[0] > 0 {
