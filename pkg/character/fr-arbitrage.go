@@ -223,7 +223,7 @@ func (fra *FRArb) Start() {
 						fmt.Sprintf("stop earning on %s, size %f",
 							future.name, future.size))
 				}
-				fra.freeBalance += future.size
+				fra.freeBalance += math.Abs(future.size)
 				future.size = 0
 			}
 			util.Info(fra.tag, fmt.Sprintf("free balance: %f, count: %d", 
