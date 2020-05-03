@@ -57,9 +57,10 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 		quarterContractName: "0626",
 		updatePeriod: 15,
 		futureNames: []string{
-			"BTC", "ETH", 
-			
-			"XTZ", "EOS", "LTC",
+			"BTC", "ETH",
+			 
+			"EOS", "LTC",
+			"XTZ",
 			"BSV", "BCH", "LINK", "ALT", "XRP",
 			"BNB", "ATOM", "TRX", "ETC", "ALGO",
 			"ADA", "SHIT", "MID", "MATIC", "EXCH",
@@ -67,6 +68,7 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 			"OKB", "BTMX", "PRIV", "PAXG", "LEO",
 			"DOGE", "USDT",
 		},
+		// perp and quarter have leverage/2
 		leverage: 5,
 		// 5 consecutive hours of positive/negative funding rate
 		longTime: 10,
@@ -205,7 +207,6 @@ func (fra *FRArb) Start() {
 			for name, future := range fra.futures {
 				rates := fra.ftx.GetFundingRates(now - 60, now, 
 					fra.getFutureName(name, true))
-				//stats := fra.ftx.GetFutureStats(fra.getFutureName(name, true))
 				future.fundingRates = 
 					append([]float64{rates[0]}, 
 					future.fundingRates[:24 * fra.prevRateDays - 1]...)
@@ -230,7 +231,7 @@ func (fra *FRArb) Start() {
 				fra.freeBalance, len(fra.startFutures)))
 			count := float64(len(fra.startFutures))
 			if count > 0 && fra.freeBalance >= fra.minAmount * count {
-				size := fra.freeBalance / (count * 2)
+				size := fra.freeBalance / (count * 2) * (fra.leverage / 2)
 				for _, future := range fra.startFutures {
 					if future.fundingRates[0] > 0 {
 						// TODO: long pays short, short perp, long quarter
