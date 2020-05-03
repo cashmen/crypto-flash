@@ -224,14 +224,16 @@ func (fra *FRArb) Start() {
 						fmt.Sprintf("stop earning on %s, size %f",
 							future.name, future.size))
 				}
-				fra.freeBalance += math.Abs(future.size)
+				pairPortion := math.Abs(future.size) / (fra.leverage / 2) * 2
+				fra.freeBalance += pairPortion
 				future.size = 0
 			}
 			util.Info(fra.tag, fmt.Sprintf("free balance: %f, count: %d", 
 				fra.freeBalance, len(fra.startFutures)))
 			count := float64(len(fra.startFutures))
 			if count > 0 && fra.freeBalance >= fra.minAmount * count {
-				size := fra.freeBalance / (count * 2) * (fra.leverage / 2)
+				pairPortion := fra.freeBalance / count
+				size := pairPortion / 2 * (fra.leverage / 2)
 				for _, future := range fra.startFutures {
 					if future.fundingRates[0] > 0 {
 						// TODO: long pays short, short perp, long quarter
