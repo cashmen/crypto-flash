@@ -187,6 +187,59 @@ func (fra *FRArb) sendReport() {
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
 	fra.notifier.Broadcast(fra.tag, msg)
 }
+func (fra *FRArb) startPair(future *future, ratio float64) {
+	/*
+	perpSide := "long"
+	quarterSide := "short"
+	if future.size < 0 {
+		// long pays short, short perp, long quarter
+		perpSide = "short"
+		quarterSide = "long"
+	}
+	// TODO: set stop loss
+	fra.sendSignal(&util.Signal{ 
+		Market: fra.getFutureName(future.name, true), 
+		Side: perpSide,
+		Reason: "Profitable",
+		Ratio: ratio,
+	})
+	fra.sendSignal(&util.Signal{ 
+		Market: fra.getFutureName(future.name, false), 
+		Side: quarterSide,
+		Reason: "Profitable",
+		Ratio: ratio,
+	})*/
+	util.Info(fra.tag, fmt.Sprintf("start earning on %s, size %f",
+		future.name, future.size))
+	if fra.notifier != nil {
+		fra.notifier.Broadcast(fra.tag, 
+			fmt.Sprintf("start earning on %s, size %f",
+			future.name, future.size))
+	}
+}
+func (fra *FRArb) stopPair(future *future) {
+	/*
+	fra.sendSignal(&util.Signal{ 
+		Market: fra.getFutureName(future.name, true), 
+		Side: "close",
+		Reason: "Not profitable",
+	})
+	fra.sendSignal(&util.Signal{ 
+		Market: fra.getFutureName(future.name, false), 
+		Side: "close",
+		Reason: "Not profitable",
+	})*/
+	util.Info(fra.tag, fmt.Sprintf("stop earning on %s, size %f",
+		future.name, future.size))
+	if fra.notifier != nil {
+		fra.notifier.Broadcast(fra.tag, 
+			fmt.Sprintf("stop earning on %s, size %f",
+			future.name, future.size))
+	}
+	pairPortion := math.Abs(future.size) / fra.leverage * 2
+	fra.freeBalance += pairPortion
+	future.size = 0
+}
 func (fra *FRArb) Start() {
 	// get previous funding rate
 	now := time.Now().Unix()
@@ -215,18 +268,7 @@ func (fra *FRArb) Start() {
 				fra.genSignal(future)
 			}
 			for _, future := range fra.stopFutures {
-				// TODO: close both positions on perp and quater
-				util.Info(fra.tag, 
-					fmt.Sprintf("stop earning on %s, size %f",
-						future.name, future.size))
-				if fra.notifier != nil {
-					fra.notifier.Broadcast(fra.tag, 
-						fmt.Sprintf("stop earning on %s, size %f",
-							future.name, future.size))
-				}
-				pairPortion := math.Abs(future.size) / fra.leverage * 2
-				fra.freeBalance += pairPortion
-				future.size = 0
+				fra.stopPair(future)		
 			}
 			util.Info(fra.tag, fmt.Sprintf("free balance: %f, count: %d", 
 				fra.freeBalance, len(fra.startFutures)))
@@ -236,20 +278,11 @@ func (fra *FRArb) Start() {
 				size := pairPortion / 2 * fra.leverage
 				for _, future := range fra.startFutures {
 					if future.fundingRates[0] > 0 {
-						// TODO: long pays short, short perp, long quarter
 						future.size = -size
 					} else {
-						// TODO: short pays long, long perp, short quarter
 						future.size = size
 					}
-					util.Info(fra.tag, 
-						fmt.Sprintf("start earning on %s, size %f",
-							future.name, future.size))
-					if fra.notifier != nil {
-						fra.notifier.Broadcast(fra.tag, 
-							fmt.Sprintf("start earning on %s, size %f",
-								future.name, future.size))
-					}
+					fra.startPair(future, 1 / count / 2 * fra.leverage)
 				}
 				fra.freeBalance = 0
 			}

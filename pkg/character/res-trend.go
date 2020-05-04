@@ -235,6 +235,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			TakeProfit: rt.takeProfitPrice,
 			StopLoss: rt.stopLossPrice,
 			UseTrailingStop: rt.useTrailingStop,
+			Ratio: 1,
 		})
 		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
@@ -260,6 +261,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			TakeProfit: rt.takeProfitPrice,
 			StopLoss: rt.stopLossPrice,
 			UseTrailingStop: rt.useTrailingStop,
+			Ratio: 1,
 		})
 		rt.openPosition("long", rt.balance, candle.Close, "Supertrend")
 	}
