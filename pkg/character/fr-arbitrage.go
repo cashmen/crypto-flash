@@ -71,7 +71,7 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 		// perp and quarter have 1/2 pairPortion and leverage
 		leverage: 5,
 		// 5 consecutive hours of positive/negative funding rate
-		longTime: 10,
+		longTime: 5 * 24,
 		aprThreshold: 0.3,
 		prevRateDays: 7,
 		// minimum USD amount to start a pair (perp + quarter)
