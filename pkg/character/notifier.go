@@ -71,6 +71,7 @@ func (n *Notifier) Listen() {
 	}
 	// receive from tg bot
 	go func() {
+		killed := false
 		for update := range updates {
 			if update.Message == nil {
 				continue
@@ -79,7 +80,8 @@ func (n *Notifier) Listen() {
 			msg := tg.NewMessage(update.Message.Chat.ID, "")
 			switch update.Message.Command() {
 			case "help":
-				msg.Text = "Available commands: /start, /register and /status."
+				msg.Text = "Available commands: /start, /register, " + 
+					"/emergency_kill and /status."
 			case "start":
 				user := recvMsg.From.UserName
 				chatID := recvMsg.Chat.ID
@@ -97,10 +99,21 @@ func (n *Notifier) Listen() {
 				util.Success(n.tag, "register", user, util.PI64(chatID))
 			case "status":
 				msg.Text = "I'm ok."
+			case "emergency_kill":
+				if recvMsg.From.UserName == "nicholas_chao" {
+					msg.Text = "Process killed."
+					defer panic("Process is killed by its owner.")
+					killed = true
+				} else {
+					msg.Text = "Permission denied."
+				}
 			default:
 				msg.Text = "I don't know the command."
 			}
 			n.tgClient.Send(msg)
+			if killed {
+				break
+			}
 		}
 	}()
 }
