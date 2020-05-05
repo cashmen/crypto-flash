@@ -13,6 +13,9 @@ type Supertrend struct {
 	prevFinalLowerBand float64
 	prevTrend string
 	prevCandle *util.Candle
+	prevPredictFinalUpperBand float64
+	prevPredictFinalLowerBand float64
+	prevPredictTrend string
 }
 
 func NewSupertrend(multiplier float64, period int) *Supertrend {
@@ -67,10 +70,12 @@ func (st *Supertrend) Update(candle *util.Candle) float64 {
 		util.Info(st.Tag, util.Green("trend up"))
 		supertrend = finalLowerBand
 		st.prevTrend = "up"
+		st.prevPredictTrend = "up"
 	} else if candle.Close <= finalLowerBand {
 		util.Info(st.Tag, util.Red("trend down"))
 		supertrend = finalUpperBand
 		st.prevTrend = "down"
+		st.prevPredictTrend = "down"
 	} else {
 		// final lower band < close < final upper band
 		// keep previous trend
@@ -84,6 +89,8 @@ func (st *Supertrend) Update(candle *util.Candle) float64 {
 	}
 	st.prevFinalUpperBand = finalUpperBand
 	st.prevFinalLowerBand = finalLowerBand
+	st.prevPredictFinalUpperBand = finalUpperBand
+	st.prevPredictFinalLowerBand = finalLowerBand
 	st.prevCandle = candle
 	st.prevAtr = atr
 	return supertrend
@@ -98,23 +105,23 @@ func (st *Supertrend) Predict(candle *util.Candle) float64 {
 	var finalUpperBand, finalLowerBand, supertrend float64
 	if st.prevCandle == nil {
 		finalUpperBand = basicUpperBand
-	} else if basicUpperBand < st.prevFinalUpperBand || 
-		st.prevCandle.Close > st.prevFinalUpperBand {
+	} else if basicUpperBand < st.prevPredictFinalUpperBand || 
+		st.prevCandle.Close > st.prevPredictFinalUpperBand {
 		// price is falling or in up trend, adjust upperband
 		finalUpperBand = basicUpperBand
 	} else {
 		// price is rising, maintain upperband
-		finalUpperBand = st.prevFinalUpperBand
+		finalUpperBand = st.prevPredictFinalUpperBand
 	}
 	if st.prevCandle == nil {
 		finalLowerBand = basicLowerBand
-	} else if basicLowerBand > st.prevFinalLowerBand ||
-		st.prevCandle.Close < st.prevFinalLowerBand {
+	} else if basicLowerBand > st.prevPredictFinalLowerBand ||
+		st.prevCandle.Close < st.prevPredictFinalLowerBand {
 		// price is rising or in down trend, adjust lowerband
 		finalLowerBand = basicLowerBand
 	} else {
 		// price is falling, maintain lowerband
-		finalLowerBand = st.prevFinalLowerBand
+		finalLowerBand = st.prevPredictFinalLowerBand
 	}
 	/* another version
 	if candle.Close <= finalUpperBand {
@@ -125,19 +132,23 @@ func (st *Supertrend) Predict(candle *util.Candle) float64 {
 	if candle.Close >= finalUpperBand {
 		util.Info(st.Tag, util.Green("trend up"))
 		supertrend = finalLowerBand
+		st.prevPredictTrend = "up"
 	} else if candle.Close <= finalLowerBand {
 		util.Info(st.Tag, util.Red("trend down"))
 		supertrend = finalUpperBand
+		st.prevPredictTrend = "down"
 	} else {
 		// final lower band < close < final upper band
 		// keep previous trend
-		if (st.prevTrend == "up") {
+		if (st.prevPredictTrend == "up") {
 			supertrend = finalLowerBand
-		} else if (st.prevTrend == "down") {
+		} else if (st.prevPredictTrend == "down") {
 			supertrend = finalUpperBand
 		} else {
 			supertrend = -1
 		}
 	}
+	st.prevPredictFinalUpperBand = finalUpperBand
+	st.prevPredictFinalLowerBand = finalLowerBand
 	return supertrend
 }

@@ -10,6 +10,7 @@
 // TODO:
 // 1. track order
 // 2. precautions
+// 3. track free balance (fund pool)
 */
 package character
 
