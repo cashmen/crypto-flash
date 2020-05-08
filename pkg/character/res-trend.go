@@ -237,7 +237,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			UseTrailingStop: rt.useTrailingStop,
 			Ratio: 1,
 		})
-		rt.openPosition("short", rt.balance, candle.Close, "Supertrend")
+		rt.openPosition("short", rt.initBalance, candle.Close, "Supertrend")
 	} else if (rt.position == nil || rt.position.Side == "short") && 
 			((rt.prevTrend == "bear" && rt.trend == "bull" && rt.mainTrend == "bull") ||
 			(rt.prevMainTrend == "bear" && rt.mainTrend == "bull")) {
@@ -263,7 +263,7 @@ func (rt *ResTrend) genSignal(candle *util.Candle) {
 			UseTrailingStop: rt.useTrailingStop,
 			Ratio: 1,
 		})
-		rt.openPosition("long", rt.balance, candle.Close, "Supertrend")
+		rt.openPosition("long", rt.initBalance, candle.Close, "Supertrend")
 	}
 	roi := util.CalcROI(rt.initBalance, rt.balance)
 	util.Info(rt.tag, 

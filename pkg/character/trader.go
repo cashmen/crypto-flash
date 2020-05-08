@@ -251,7 +251,7 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 			}
 			usdBalance := t.wallet.GetBalance("USD")
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
-			size := usdBalance / curMP * t.leverage
+			size := t.initBalance / curMP * t.leverage
 			go t.openPosition(signal, size, curMP)
 		}
 	}
