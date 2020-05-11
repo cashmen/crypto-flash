@@ -33,6 +33,7 @@ type FTX struct {
 	key string
 	subAccount string
 	secret string
+	Fee float64
 	// save all candles data from different resolutions and markets
 	candleData map[string][]*util.Candle
 	candleSubs map[string][]chan<- *util.Candle
@@ -44,6 +45,7 @@ func NewFTX(key, secret, subAccount string) *FTX {
 		key: key,
 		secret: secret,
 		subAccount: subAccount,
+		Fee: 0.0007,
 		tag: "FTX",
 		candleData: make(map[string][]*util.Candle),
 		candleSubs: make(map[string][]chan<- *util.Candle),

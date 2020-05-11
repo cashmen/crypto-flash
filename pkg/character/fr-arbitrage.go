@@ -71,7 +71,7 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 		// perp and quarter have 1/2 pairPortion and leverage
 		leverage: 5,
 		// 5 consecutive hours of positive/negative funding rate
-		longTime: 5 * 24,
+		longTime: 1 * 24,
 		aprThreshold: 0.3,
 		prevRateDays: 7,
 		// minimum USD amount to start a pair (perp + quarter)
@@ -209,6 +209,7 @@ func (fra *FRArb) startPair(future *future, ratio float64) {
 		Reason: "Profitable",
 		Ratio: ratio,
 	})*/
+	future.totalProfit -= future.size * fra.ftx.Fee * 2
 	util.Info(fra.tag, fmt.Sprintf("start earning on %s, size %f",
 		future.name, future.size))
 	if fra.notifier != nil {
@@ -229,6 +230,7 @@ func (fra *FRArb) stopPair(future *future) {
 		Side: "close",
 		Reason: "Not profitable",
 	})*/
+	future.totalProfit -= future.size * fra.ftx.Fee * 2
 	util.Info(fra.tag, fmt.Sprintf("stop earning on %s, size %f",
 		future.name, future.size))
 	if fra.notifier != nil {
