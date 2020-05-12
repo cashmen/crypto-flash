@@ -20,6 +20,8 @@ type future struct {
 	estApr float64
 	size float64
 	totalProfit float64
+	perpEnterPrice float64
+	quarterEnterPrice float64
 }
 type FRArb struct {
 	SignalProvider
@@ -188,14 +190,14 @@ func (fra *FRArb) sendReport() {
 	fra.notifier.Broadcast(fra.tag, msg)
 }
 func (fra *FRArb) startPair(future *future, ratio float64) {
-	/*
 	perpSide := "long"
-	quarterSide := "short"
+	//quarterSide := "short"
 	if future.size < 0 {
 		// long pays short, short perp, long quarter
 		perpSide = "short"
-		quarterSide = "long"
+		//quarterSide = "long"
 	}
+	/*
 	// TODO: set stop loss
 	fra.sendSignal(&util.Signal{ 
 		Market: fra.getFutureName(future.name, true), 
@@ -209,7 +211,16 @@ func (fra *FRArb) startPair(future *future, ratio float64) {
 		Reason: "Profitable",
 		Ratio: ratio,
 	})*/
-	future.totalProfit -= future.size * fra.ftx.Fee * 2
+	perpPrices := fra.ftx.GetFuture(fra.getFutureName(future.name, true))
+	quarterPrices := fra.ftx.GetFuture(fra.getFutureName(future.name, false))
+	if perpSide == "long" {
+		future.perpEnterPrice = perpPrices.Ask
+		future.quarterEnterPrice = quarterPrices.Bid
+	} else {
+		future.perpEnterPrice = perpPrices.Bid
+		future.quarterEnterPrice = quarterPrices.Ask
+	}
+	future.totalProfit -= math.Abs(future.size) * fra.ftx.Fee * 2
 	util.Info(fra.tag, fmt.Sprintf("start earning on %s, size %f",
 		future.name, future.size))
 	if fra.notifier != nil {
@@ -230,13 +241,36 @@ func (fra *FRArb) stopPair(future *future) {
 		Side: "close",
 		Reason: "Not profitable",
 	})*/
-	future.totalProfit -= future.size * fra.ftx.Fee * 2
+	perpPrices := fra.ftx.GetFuture(fra.getFutureName(future.name, true))
+	quarterPrices := fra.ftx.GetFuture(fra.getFutureName(future.name, false))
+	var perpPrice, quarterPrice, perpProfit, quarterProfit float64
+	if future.size > 0 {
+		perpPrice = perpPrices.Bid
+		quarterPrice = quarterPrices.Ask
+	} else {
+		perpPrice = perpPrices.Ask
+		quarterPrice = quarterPrices.Bid
+	}
+	size := math.Abs(future.size)
+	perpProfit = size * (perpPrice / future.perpEnterPrice) - size
+	quarterProfit = size * (quarterPrice / future.quarterEnterPrice) - size
+	if future.size > 0 {
+		quarterProfit *= -1
+	} else {
+		perpProfit *= -1
+	}
+	hedgeProfit := perpProfit + quarterProfit
+	future.totalProfit -= math.Abs(future.size) * fra.ftx.Fee * 2
+	future.totalProfit += perpProfit + quarterProfit
 	util.Info(fra.tag, fmt.Sprintf("stop earning on %s, size %f",
 		future.name, future.size))
+	util.Info(fra.tag, fmt.Sprintf("hedge profit: %f", hedgeProfit))
 	if fra.notifier != nil {
 		fra.notifier.Broadcast(fra.tag, 
 			fmt.Sprintf("stop earning on %s, size %f",
 			future.name, future.size))
+		fra.notifier.Broadcast(fra.tag, 
+			fmt.Sprintf("hedge profit: %f", hedgeProfit))
 	}
 	pairPortion := math.Abs(future.size) / fra.leverage * 2
 	fra.freeBalance += pairPortion

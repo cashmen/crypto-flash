@@ -17,9 +17,10 @@ import (
 	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
 	"sync"
 )
-const version = "3.4.1-beta"
+const version = "3.4.2-beta"
 const update = "1. Add funding rate arbitrage provider for simulation test.\n" +
-	"2. Funding pool logic test."
+	"2. Funding pool logic test.\n" +
+	"3. Funding rate arbitrage profit calculation includes trading fee and hedge profit (or cost)."
 const tag = "Crypto Flash"
 
 type bot struct {
