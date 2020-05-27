@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"github.com/line/line-bot-sdk-go/linebot"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api"
-	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
+	util "github.com/cashmen/crypto-flash/pkg/util"
 )
 
 type Notifier struct {
