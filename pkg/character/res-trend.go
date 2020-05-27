@@ -55,15 +55,15 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		},
 		ftx: ftx,
 		// config
-		market: "EOS-PERP",
+		market: "BCH-PERP",
 		mul: 1,
 		res: 900, // 15 (for test), 60, 300 or 900
 		mainMul: 2,
 		mainRes: 14400, // 60 (for test), 3600 or 14400
 		period: 3,
 		warmUpCandleNum: 40,
-		takeProfit: 0.03,
-		stopLoss: 0.04,
+		takeProfit: 2
+		stopLoss: 4,
 		useTrailingStop: false,
 		// data
 		mainCandle: nil,
