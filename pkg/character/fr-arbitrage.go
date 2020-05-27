@@ -47,8 +47,8 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 			tag: "FRArbProvider",
 			startTime: time.Now(),
 			position: nil,
-			initBalance: 1000000,
-			balance: 1000000,
+			initBalance: 1000,
+			balance: 1000,
 			notifier: notifier,
 			signalChan: nil,
 			takeProfitCount: 0,
@@ -80,7 +80,7 @@ func NewFRArb(ftx *exchange.FTX, notifier *Notifier) *FRArb {
 		minAmount: 10,
 		// data
 		futures: make(map[string]*future),
-		freeBalance: 1000000,
+		freeBalance: 1000,
 	}
 }
 func (fra *FRArb) getFutureName(future string, isPerp bool) string {
