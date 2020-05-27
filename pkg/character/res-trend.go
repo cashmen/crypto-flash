@@ -62,8 +62,8 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		mainRes: 14400, // 60 (for test), 3600 or 14400
 		period: 3,
 		warmUpCandleNum: 40,
-		takeProfit: 125,
-		stopLoss: 125,
+		takeProfit: 150,
+		stopLoss: 200,
 		useTrailingStop: false,
 		// data
 		mainCandle: nil,
