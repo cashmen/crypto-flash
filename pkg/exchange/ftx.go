@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"time"
 	"net/http"
-	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
+	util "github.com/cashmen/crypto-flash/pkg/util"
 )
 
 const (
