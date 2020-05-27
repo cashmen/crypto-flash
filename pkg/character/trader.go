@@ -50,7 +50,7 @@ func NewTrader(owner string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 		ftx: ftx,
 		notifier: notifier,
 		wallet: w,
-		initBalance: w.GetBalance("ETH"),
+		initBalance: w.GetBalance("USD"),
 		market: "SHIT-PERP",
 		position: nil,
 		// ignore first signal?
@@ -66,13 +66,13 @@ func (t *Trader) notifyROI() {
 		return;
 	}
 	t.wallet = t.ftx.GetWallet()
-	roi := util.CalcROI(t.initBalance, t.wallet.GetBalance("ETH"))
+	roi := util.CalcROI(t.initBalance, t.wallet.GetBalance("USD"))
 	msg := "Report\n"
 	runTime := time.Now().Sub(t.startTime)
 	d := util.FromTimeDuration(runTime)
 	msg += "Runtime: " + d.String() + "\n"
 	msg += fmt.Sprintf("Init Balance: %.2f\n", t.initBalance)
-	msg += fmt.Sprintf("Balance: %.2f\n", t.wallet.GetBalance("ETH"))
+	msg += fmt.Sprintf("Balance: %.2f\n", t.wallet.GetBalance("USD"))
 	msg += fmt.Sprintf("ROI: %.2f%%\n", roi * 100)
 	ar := roi * (86400 * 365) / runTime.Seconds()
 	msg += fmt.Sprintf("Annualized Return: %.2f%%", ar * 100)
@@ -249,7 +249,7 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 			} else if signal.Side == "short" {
 				curMP = orderbook.Bid[0].Price
 			}
-			usdBalance := t.wallet.GetBalance("ETH")
+			usdBalance := t.wallet.GetBalance("USD")
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
 			size := t.initBalance / curMP * t.leverage
 			go t.openPosition(signal, size, curMP)
