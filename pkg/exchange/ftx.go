@@ -134,7 +134,7 @@ func (ftx *FTX) SubCandle(
 		startTime := now - resolution64 * 2 + 1
 		endTime := now - resolution64
 		candles := ftx.GetHistoryCandles(
-			"BTC-PERP", resolution, startTime, endTime)
+			"SHIT-PERP", resolution, startTime, endTime)
 		for _, c := range ftx.candleSubs[dataID] {
 			c<-candles[0]
 		}
