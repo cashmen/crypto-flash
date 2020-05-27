@@ -55,7 +55,7 @@ func NewTrader(owner string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 		position: nil,
 		// ignore first signal?
 		ignoreFirstSignal: false,
-		leverage: 5,
+		leverage: 3,
 		updatePeriod: 10 * 60 * time.Second,
 	}
 	go t.updateStatus()
