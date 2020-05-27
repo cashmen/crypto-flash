@@ -1,6 +1,6 @@
 package indicator
 
-import util "github.com/CheshireCatNick/crypto-flash/pkg/util"
+import util "github.com/cashmen/crypto-flash/pkg/util"
 import "math"
 
 type ATR struct {
