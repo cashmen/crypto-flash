@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 	"math"
-	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
-	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
-	indicator "github.com/CheshireCatNick/crypto-flash/pkg/indicator"
+	exchange "github.com/cashmen/crypto-flash/pkg/exchange"
+	util "github.com/cashmen/crypto-flash/pkg/util"
+	indicator "github.com/cashmen/crypto-flash/pkg/indicator"
 )
 
 type ResTrend struct {
@@ -46,8 +46,8 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 			tag: "ResTrendProvider",
 			startTime: time.Now(),
 			position: nil,
-			initBalance: 1000000,
-			balance: 1000000,
+			initBalance: 1000,
+			balance: 1000,
 			notifier: notifier,
 			signalChan: nil,
 			takeProfitCount: 0,
