@@ -55,7 +55,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		},
 		ftx: ftx,
 		// config
-		market: "BTC-PERP",
+		market: "SHIT-PERP",
 		mul: 1,
 		res: 900, // 15 (for test), 60, 300 or 900
 		mainMul: 2,
@@ -64,7 +64,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		warmUpCandleNum: 40,
 		takeProfit: 100,
 		stopLoss: 150,
-		useTrailingStop: true,
+		useTrailingStop: false,
 		// data
 		mainCandle: nil,
 	}
