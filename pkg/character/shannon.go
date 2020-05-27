@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 	//"math"
-	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
-	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
+	exchange "github.com/cashmen/crypto-flash/pkg/exchange"
+	util "github.com/cashmen/crypto-flash/pkg/util"
 )
 
 type Shannon struct {
