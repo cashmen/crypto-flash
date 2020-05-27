@@ -11,10 +11,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	util "github.com/CheshireCatNick/crypto-flash/pkg/util"
+	util "github.com/cashmen/crypto-flash/pkg/util"
 	"time"
-	character "github.com/CheshireCatNick/crypto-flash/pkg/character"
-	exchange "github.com/CheshireCatNick/crypto-flash/pkg/exchange"
+	character "github.com/cashmen/crypto-flash/pkg/character"
+	exchange "github.com/cashmen/crypto-flash/pkg/exchange"
 	"sync"
 )
 const version = "3.4.2-beta"
