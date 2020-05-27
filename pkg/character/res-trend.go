@@ -55,7 +55,7 @@ func NewResTrend(ftx *exchange.FTX, notifier *Notifier) *ResTrend {
 		},
 		ftx: ftx,
 		// config
-		market: "BTC-0626",
+		market: "BSV-PERP",
 		mul: 1,
 		res: 900, // 15 (for test), 60, 300 or 900
 		mainMul: 2,
