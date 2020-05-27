@@ -51,7 +51,7 @@ func NewTrader(owner string, ftx *exchange.FTX, notifier *Notifier) *Trader {
 		notifier: notifier,
 		wallet: w,
 		initBalance: w.GetBalance("ETH"),
-		market: "ETH-PERP",
+		market: "SHIT-PERP",
 		position: nil,
 		// ignore first signal?
 		ignoreFirstSignal: false,
