@@ -249,7 +249,7 @@ func (t *Trader) Start(signalChan <-chan *util.Signal) {
 			} else if signal.Side == "short" {
 				curMP = orderbook.Bid[0].Price
 			}
-			usdBalance := t.wallet.GetBalance("USD")
+			usdBalance := t.wallet.GetBalance("USD") + t.wallet.GetBalance("BTC") * curMP
 			util.Info(t.tag, fmt.Sprintf("current balance: %.2f", usdBalance))
 			size := t.initBalance / curMP * t.leverage
 			go t.openPosition(signal, size, curMP)
