@@ -98,7 +98,7 @@ func main() {
 	} else if config.Mode == "backtest" {
 		//endTime, _ := time.Parse(time.RFC3339, "2019-12-01T05:00:00+00:00")
 		endTime := time.Now()
-		d := util.Duration{ Day: -60 }
+		d := util.Duration{ Day: -15 }
 		startTime := endTime.Add(d.GetTimeDuration())
 		roi := rs.Backtest(startTime.Unix(), endTime.Unix())
 		annual := util.CalcAnnualFromROI(roi, -d.GetTimeDuration().Seconds())
